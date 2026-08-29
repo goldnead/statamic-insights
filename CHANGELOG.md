@@ -2,6 +2,17 @@
 
 All notable changes to this addon are documented here.
 
+## 1.1.1 — 2026-08-29
+
+Nur Dokumentation, kein Codeunterschied zu 1.1.0. Zwei Dinge, die im Paket
+ausgeliefert werden und in 1.1.0 noch nicht drin waren: der Hinweis oben, dass
+nach dem Wechsel einmal `php artisan cache:clear` laufen muss, und eine Zusage
+in `docs/reading-the-numbers.md`, die das Addon nicht halten kann und deshalb
+zurückgenommen wurde.
+
+Eigene Patch-Version, weil 1.1.0 zu diesem Zeitpunkt bereits veröffentlicht war.
+Ein veröffentlichter Tag wird nicht verschoben.
+
 ## 1.1.0 — 2026-08-29
 
 Insights stops being a revenue report with a screen and becomes what it was
