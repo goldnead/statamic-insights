@@ -157,7 +157,18 @@ class MetricRegistry
     }
 
     /**
-     * The available metrics, grouped under their own headings.
+     * The available metrics, grouped under their own headings, in a settled order.
+     *
+     * Sorted by heading rather than left in registration order, which is the
+     * order the service providers happened to boot in. Unsorted, installing or
+     * removing any addon reshuffled every other addon's section on the screen —
+     * a reader who had learnt where "Invoices" sits would find it somewhere
+     * else after an unrelated update. Alphabetical is not the cleverest order
+     * imaginable, but it is the one that holds still, and holding still is what
+     * a screen read every morning needs.
+     *
+     * Sorted on the translated heading, so the order follows the language the
+     * reader is actually looking at.
      *
      * @return array<string, array<string, Metric>>
      */
@@ -168,6 +179,8 @@ class MetricRegistry
         foreach ($this->available() as $handle => $metrik) {
             $gruppen[$metrik->group()][$handle] = $metrik;
         }
+
+        ksort($gruppen, SORT_NATURAL | SORT_FLAG_CASE);
 
         return $gruppen;
     }

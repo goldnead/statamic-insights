@@ -4,6 +4,23 @@ Every figure on the revenue screen is the answer to a question that could have
 been asked three different ways. This page says which way was chosen, and why —
 so that a number which looks surprising can be checked rather than distrusted.
 
+## Every figure is the current brand's
+
+On a multi-brand install, a tile counts the brand shown in the switcher — the
+same rows the listings beside it would show, filtered by the same rules the rest
+of the install uses. Switch brand and every number on the page changes with it.
+
+Pick no brand at all and the figures read zero rather than disappearing. That is
+deliberate: an unresolved brand is a question about the data, not a statement
+that the metric has ceased to exist, and a reader can make sense of a zero but
+cannot notice a tile that is not there.
+
+A number meant to span all brands is allowed — a suppression list is arguably
+one such — but it has to say so in its own description. If a tile does not say
+otherwise, it counted one brand.
+
+On a single-brand install none of this applies and nothing is filtered.
+
 ## A sale counts on the day it was paid
 
 Not the day the checkout started, not the day the order was fulfilled. The

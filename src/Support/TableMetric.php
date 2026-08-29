@@ -94,15 +94,77 @@ abstract class TableMetric implements Metric
      * The rows inside the window, ready to be counted or summed.
      *
      * Override to add the conditions that make a row count at all — a status,
-     * a brand, a soft-delete. Everything downstream builds on this, so a
-     * condition put here applies to the figure, the chart and every split at
-     * once, and cannot be forgotten in one of them.
+     * a soft-delete. Everything downstream builds on this, so a condition put
+     * here applies to the figure, the chart and every split at once, and cannot
+     * be forgotten in one of them. Override by *extending* it, never by
+     * rewriting it: three separate defects in this method — the missing null
+     * check, the missing upper bound, the inclusive one — reached only the
+     * metrics that had called `parent::inPeriod()` and left every hand-written
+     * copy silently wrong.
+     *
+     * The brand is not among the conditions to add here. Declare
+     * {@see brandColumn} instead and it is applied below, so that every metric
+     * in the family narrows by exactly the rules the rest of the install uses.
      */
+    /**
+     * The column that says which brand a row belongs to, or null for none.
+     *
+     * Declaring it is the whole opt-in: {@see inPeriod} then narrows every
+     * figure, chart and split to the current brand at once, and no individual
+     * metric can forget to. A table without brands, or a metric that answers a
+     * question deliberately spanning all of them, returns null — and then says
+     * so in its {@see description}, because a screen where one tile counts one
+     * brand and its neighbour counts four, with nothing on either saying which,
+     * is worse than a screen that knows no brands at all.
+     */
+    protected function brandColumn(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Narrow a query to the current brand.
+     *
+     * This is `Goldnead\BrandContext\Scopes\BrandScope::apply()` transcribed
+     * for the query builder, and it must stay a transcription: the metrics read
+     * tables through `DB::table()`, so Eloquent's global scope never fires, and
+     * a figure that filtered by its own rules would disagree with every other
+     * reading of the same install. The order matters and is theirs — bypass
+     * first, then single-brand, then the unresolved case, then the filter.
+     *
+     * An unresolved brand fails closed to no rows, not to an absent metric:
+     * {@see Metric::available()} answers whether the thing exists, and a brand
+     * that has not been picked yet is not the metric ceasing to exist. A tile
+     * reading zero can be understood; a tile that vanished cannot.
+     */
+    protected function brandScoped(Builder $rows, ?string $column = null): Builder
+    {
+        $column ??= $this->brandColumn();
+
+        if ($column === null || ! app()->bound('brand-context')) {
+            return $rows;
+        }
+
+        $manager = app('brand-context');
+
+        if ($manager->scopeIsDisabled() || ! $manager->multiBrandEnabled()) {
+            return $rows;
+        }
+
+        if (! $manager->hasCurrent()) {
+            return $manager->failMode() === 'open'
+                ? $rows
+                : $rows->whereRaw('1 = 0');
+        }
+
+        return $rows->where($this->table().'.'.$column, $manager->currentId());
+    }
+
     protected function inPeriod(MetricQuery $query, ?string $column = null): Builder
     {
         $column ??= $this->timestamp();
 
-        return DB::table($this->table())
+        $rows = DB::table($this->table())
             // A row with no timestamp cannot be placed in time, so it is in no
             // period — including "all time", where both bounds are null and the
             // two clauses below add no condition at all. Without this, a metric
@@ -119,6 +181,8 @@ abstract class TableMetric implements Metric
             // last second of the period fell out — invisibly, and only on some
             // engines. Midnight is the same instant at every precision.
             ->when($query->period->toExclusive(), fn ($rows) => $rows->where($column, '<', $query->period->toExclusive()));
+
+        return $this->brandScoped($rows);
     }
 
     /**
@@ -145,7 +209,26 @@ abstract class TableMetric implements Metric
     {
         $column ??= $this->timestamp();
 
-        return $this->inPeriod($query, $column)->where($column, '<=', Carbon::now());
+        return $this->inPeriod($query, $column)->where($column, '<=', Carbon::now($this->zone()));
+    }
+
+    /**
+     * The timezone the timestamp column is written in, or null for the site's own.
+     *
+     * A clamp compares a stored wall-clock against the current one, so both have
+     * to be read off the same clock. A table that stores UTC while the site runs
+     * on Europe/Berlin was clamped two hours early, and on a US host five hours
+     * early — always the newest rows, always silently, and never on the machine
+     * of whoever set the metric up, because there the two clocks agree.
+     *
+     * Two addons had answered this by writing their own `untilNow()`, which is
+     * how the last three defects in this class reached only half the family.
+     * One line here instead: state where the column lives, and the base class
+     * does the rest.
+     */
+    protected function zone(): ?string
+    {
+        return null;
     }
 
     /**

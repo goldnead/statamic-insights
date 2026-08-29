@@ -24,8 +24,20 @@
         "phpunit/phpunit": "^11.0|^12.0"
     },
     "suggest": {
-        "goldnead/statamic-payments": "The source of every number this addon reports. Without it the revenue screen has nothing to show.",
-        "goldnead/statamic-leadhub": "Adds the buyer behind a number: lifetime revenue per contact."
+        "goldnead/statamic-payments": "Sales, refunds, buyers and the average order — the numbers the revenue screen is built around.",
+        "goldnead/statamic-leadhub": "Contacts, growth and lifetime revenue per buyer.",
+        "goldnead/statamic-marketing": "Subscribers, campaign opens and clicks.",
+        "goldnead/statamic-invoices": "Documents issued, net and tax charged.",
+        "goldnead/statamic-booking": "Bookings, cancellations and how far ahead people book.",
+        "goldnead/statamic-funnels": "Funnel entries and completions.",
+        "goldnead/statamic-automations": "Runs, failures and how reliably automations finish.",
+        "goldnead/statamic-webhook-manager": "Deliveries, retries and the delivery success rate.",
+        "goldnead/statamic-notifications": "Notifications sent and read.",
+        "goldnead/statamic-entitlements": "Access granted, active and expired.",
+        "goldnead/statamic-lead-magnets": "Downloads, grants and the confirmation rate.",
+        "goldnead/statamic-suppression": "Bounces, complaints and the size of the suppression list.",
+        "goldnead/statamic-events": "Events and occurrences over time.",
+        "goldnead/statamic-consent": "Consent decisions and withdrawals."
     },
     "config": {
         "optimize-autoloader": true,

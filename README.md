@@ -146,6 +146,20 @@ a calculation implements `Metric` directly and ignores this.
 written when the software noticed, and the fact happened when it happened. A
 payment paid on the 30th and recorded on the 1st belongs to the 30th.
 
+The one thing worth adding early is the brand:
+
+```php
+protected function brandColumn(): ?string
+{
+    return 'brand_id';
+}
+```
+
+That is the whole opt-in. Everything downstream — `value()`, `series()`,
+`breakdown()` — is narrowed together, so no single method can be the one that
+forgot. A join is the exception the base class cannot see: a query that reaches
+your table through a second one has to carry the brand itself.
+
 ### Two optional extras
 
 ```php
@@ -158,7 +172,7 @@ just a number: a contract that demanded a breakdown from everybody would be
 answered with empty arrays, and an empty array reads as "no data" rather than
 "not applicable".
 
-### Four rules the contract relies on
+### Six rules the contract relies on
 
 - **Null is not zero.** Return `null` where the question does not apply — a
   refund rate in a period that took nothing in has no answer, and `0 %` printed
@@ -171,6 +185,20 @@ answered with empty arrays, and an empty array reads as "no data" rather than
   future implementer forgets.
 - **Ignore filters you do not understand.** A screen passes a currency to every
   metric on it; one counting bookings has to shrug rather than fail.
+- **Say which brand you counted.** If your table has a brand column, declare it
+  in `brandColumn()` and `TableMetric` narrows the figure, the chart and every
+  split at once, by exactly the rules `statamic-brand-context` uses everywhere
+  else. If a number is meant to span all brands, that is allowed — but it has
+  to say so in its own `description()`. A screen where one tile counts one brand
+  and the tile beside it counts four, with neither saying which, is worse than a
+  screen that knows no brands at all.
+- **A rate is a cohort.** Numerator and denominator both come from the rows the
+  window selected: "of the sign-ups in these two weeks, how many confirmed",
+  counted on the sign-up date even when the confirmation arrived later. Measure
+  the period's traffic instead and a rate can exceed 100 %, which is a number
+  nobody trusts twice. Two departures are defensible — leaving rows with no
+  verdict yet out of the denominator, and measuring traffic where the cohort is
+  genuinely not the question — and both belong in `description()`.
 
 ### Where your numbers come from is your business
 

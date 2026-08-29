@@ -63,6 +63,13 @@ interface Metric
      * answer is left out of every screen rather than showing a zero — "nothing
      * to measure" and "measured nothing" are different statements, and a zero
      * for the first is the quiet kind of wrong.
+     *
+     * **It is not the place to answer a question about the data.** An empty
+     * table, a filter that matches nothing, a brand nobody has picked yet — all
+     * of those are answers, and their answer is a number. Two addons once put
+     * the unresolved brand here and took twelve tiles off the screen with it;
+     * a reader can make sense of a zero, but he cannot notice something that
+     * is not there.
      */
     public function available(): bool;
 
@@ -72,6 +79,24 @@ interface Metric
      * Null is not zero. A refund rate in a period that took nothing in has no
      * answer, and printing 0 % beside a refund amount is a statement its own
      * neighbour contradicts.
+     *
+     * **The house rule for a rate**, so that "rate" means one thing on a screen
+     * carrying a dozen of them from a dozen addons: numerator and denominator
+     * come from the *same cohort* — the rows the window selected — and not from
+     * whatever happened during the window. A confirmation rate is
+     * "of the sign-ups in these two weeks, how many confirmed", counted on the
+     * sign-up date even for a confirmation that arrived later. Counting the
+     * traffic instead lets a rate exceed 100 %, which is a number no reader
+     * will trust twice.
+     *
+     * There are two defensible departures, and both have to be named in
+     * {@see description} rather than left for the reader to work out:
+     * excluding rows that have no verdict yet from the denominator (a delivery
+     * still queued is neither a success nor a failure), and measuring a
+     * period's traffic on purpose where the cohort is not what anybody wants to
+     * know. What is not defensible is a third answer arrived at by accident.
+     *
+     * An empty denominator is null, never zero — see above.
      */
     public function value(MetricQuery $query): int|float|null;
 

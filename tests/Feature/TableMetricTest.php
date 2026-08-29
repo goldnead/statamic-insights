@@ -5,6 +5,8 @@ namespace Goldnead\StatamicInsights\Tests\Feature;
 use Goldnead\StatamicInsights\Support\MetricQuery;
 use Goldnead\StatamicInsights\Support\Period;
 use Goldnead\StatamicInsights\Support\Unit;
+use Goldnead\StatamicInsights\Tests\Fakes\BrandedWidgetMetric;
+use Goldnead\StatamicInsights\Tests\Fakes\BrandManagerStandIn;
 use Goldnead\StatamicInsights\Tests\Fakes\WidgetMetric;
 use Goldnead\StatamicInsights\Tests\TestCase;
 use Illuminate\Database\Schema\Blueprint;
@@ -31,17 +33,25 @@ class TableMetricTest extends TestCase
             $table->id();
             $table->string('kind')->nullable();
             $table->unsignedInteger('weight')->default(0);
+            $table->unsignedInteger('brand_id')->nullable();
             $table->timestamp('happened_at')->nullable();
         });
     }
 
-    protected function widget(string $when, ?string $kind = 'rot', int $weight = 1): void
+    protected function widget(string $when, ?string $kind = 'rot', int $weight = 1, ?int $brand = 1): void
     {
         DB::table('widgets')->insert([
             'kind' => $kind,
             'weight' => $weight,
+            'brand_id' => $brand,
             'happened_at' => Carbon::parse($when),
         ]);
+    }
+
+    /** Bind a stand-in for the brand manager, the way brand-context binds the real one. */
+    protected function marke(bool $multi = true, ?int $current = 1, string $failMode = 'closed', bool $disabled = false): void
+    {
+        $this->app->instance('brand-context', new BrandManagerStandIn($multi, $current, $failMode, $disabled));
     }
 
     protected function frage(string $preset = '30d'): MetricQuery
@@ -275,5 +285,163 @@ class TableMetricTest extends TestCase
     public function it_reports_the_unit_it_was_given(): void
     {
         $this->assertSame(Unit::COUNT, (new WidgetMetric)->unit());
+    }
+
+    #[Test]
+    public function a_metric_without_a_brand_column_is_left_alone(): void
+    {
+        $this->marke(current: 2);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 1);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 2);
+
+        $this->assertSame(2, (new WidgetMetric)->value($this->frage()));
+    }
+
+    #[Test]
+    public function declaring_the_column_narrows_the_figure_to_the_current_brand(): void
+    {
+        $this->marke(current: 2);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 1);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 2);
+        $this->widget(Carbon::now()->subDays(3)->toDateTimeString(), brand: 3);
+
+        $this->assertSame(1, (new BrandedWidgetMetric)->value($this->frage()));
+    }
+
+    /**
+     * The defect this mechanism was built for.
+     *
+     * A tile summed four brands while the switcher said one, so the figure was
+     * not merely wrong, it disclosed one customer's turnover on another's
+     * screen. The chart and the split are separate queries and had to be
+     * checked separately, because the earlier per-addon attempts filtered the
+     * figure and forgot the two below it.
+     */
+    #[Test]
+    public function the_chart_and_the_split_narrow_with_the_figure(): void
+    {
+        $this->marke(current: 2);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), kind: 'blau', brand: 1);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), kind: 'rot', brand: 2);
+
+        $metrik = new BrandedWidgetMetric;
+
+        $this->assertSame([1], array_values($metrik->series($this->frage())));
+        $this->assertSame(['rot'], array_column($metrik->breakdown($this->frage(), 'kind'), 'label'));
+    }
+
+    #[Test]
+    public function a_single_brand_install_never_sees_a_filter(): void
+    {
+        $this->marke(multi: false, current: null);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 7);
+
+        $this->assertSame(1, (new BrandedWidgetMetric)->value($this->frage()));
+    }
+
+    #[Test]
+    public function a_deliberately_bypassed_scope_is_not_reapplied_here(): void
+    {
+        $this->marke(current: 2, disabled: true);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 1);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 2);
+
+        $this->assertSame(2, (new BrandedWidgetMetric)->value($this->frage()));
+    }
+
+    /**
+     * Fail closed reads zero; it does not make the metric disappear.
+     *
+     * Two addons had answered this case in `available()`, which removed six
+     * tiles from the screen the moment a brand was unresolved. `available()`
+     * says whether the thing exists — an unpicked brand is not the metric
+     * ceasing to exist, and a reader can understand a zero but cannot notice
+     * an absence.
+     */
+    #[Test]
+    public function an_unresolved_brand_reads_zero_rather_than_removing_the_metric(): void
+    {
+        $this->marke(current: null);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 1);
+
+        $metrik = new BrandedWidgetMetric;
+
+        $this->assertSame(0, $metrik->value($this->frage()));
+        $this->assertTrue($metrik->available());
+    }
+
+    #[Test]
+    public function an_open_fail_mode_shows_everything_instead(): void
+    {
+        $this->marke(current: null, failMode: 'open');
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 1);
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 2);
+
+        $this->assertSame(2, (new BrandedWidgetMetric)->value($this->frage()));
+    }
+
+    /**
+     * Without brand-context installed there is no brand and nothing to filter.
+     *
+     * The coupling is optional in both directions, so a metric that declared a
+     * brand column must still work in an install that never heard of brands —
+     * rather than resolving a missing container binding and taking the whole
+     * screen down with it.
+     */
+    #[Test]
+    public function a_declared_column_is_harmless_when_brand_context_is_absent(): void
+    {
+        $this->assertFalse($this->app->bound('brand-context'));
+
+        $this->widget(Carbon::now()->subDay()->toDateTimeString(), brand: 4);
+
+        $this->assertSame(1, (new BrandedWidgetMetric)->value($this->frage()));
+    }
+
+    /**
+     * A clamp reads the same clock the column was written on.
+     *
+     * The site here runs on Chicago time while the column stores UTC, which is
+     * a real combination: several addons in this family write UTC on purpose so
+     * that a row keeps its meaning when the site is moved. Clamped against the
+     * site's clock, the last five hours of rows silently disappeared — and
+     * never on the machine of whoever wrote the metric, because a site whose
+     * timezone happens to be UTC shows nothing wrong at all.
+     */
+    #[Test]
+    public function the_clamp_follows_the_zone_the_column_is_stored_in(): void
+    {
+        $vorher = date_default_timezone_get();
+        date_default_timezone_set('America/Chicago');
+
+        // Midday UTC, which is seven in the morning where the site thinks it is.
+        Carbon::setTestNow(Carbon::parse('2026-08-20 12:00:00', 'UTC'));
+
+        // An hour ago, written as UTC wall clock the way the column stores it.
+        DB::table('widgets')->insert([
+            'kind' => 'rot',
+            'weight' => 1,
+            'brand_id' => null,
+            'happened_at' => '2026-08-20 11:00:00',
+        ]);
+
+        // Clamped, or `untilNow()` never runs and this proves nothing.
+        $inUtc = new class('count(*)', true) extends WidgetMetric
+        {
+            protected function zone(): ?string
+            {
+                return 'UTC';
+            }
+        };
+
+        $ohneAngabe = new WidgetMetric('count(*)', true);
+
+        // The same row, the same clamp, two clocks: eleven is before midday and
+        // after seven in the morning.
+        $this->assertSame(1, $inUtc->value($this->frage()));
+        $this->assertSame(0, $ohneAngabe->value($this->frage()));
+
+        Carbon::setTestNow();
+        date_default_timezone_set($vorher);
     }
 }
