@@ -102,6 +102,15 @@ abstract class TableMetric implements Metric
         $column ??= $this->timestamp();
 
         return DB::table($this->table())
+            // A row with no timestamp cannot be placed in time, so it is in no
+            // period — including "all time", where both bounds are null and the
+            // two clauses below add no condition at all. Without this, a metric
+            // over a nullable column counted every row ever written the moment
+            // somebody picked the widest range: cancellations that never
+            // happened, completions that never completed. Found by a
+            // contributor building on this class, which is the only reason it
+            // was found before shipping.
+            ->whereNotNull($column)
             ->when($query->period->from, fn ($rows) => $rows->where($column, '>=', $query->period->from))
             ->when($query->period->to, fn ($rows) => $rows->where($column, '<=', $query->period->to));
     }

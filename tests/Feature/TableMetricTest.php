@@ -84,6 +84,29 @@ class TableMetricTest extends TestCase
         $this->assertSame(1, (new WidgetMetric)->value($this->frage('7d')));
     }
 
+    /**
+     * A row with no timestamp is in no period — least of all in "all time".
+     *
+     * Over an open-ended range both bounds are null, so the two window clauses
+     * add no condition whatsoever. A metric over a nullable column then counted
+     * every row ever written the moment somebody picked the widest range:
+     * cancellations that never happened, completions that never completed.
+     *
+     * Found by a contributor building on this class. Fixed here rather than in
+     * theirs, because the next fifteen would each have had to find it again.
+     */
+    #[Test]
+    public function a_row_without_a_timestamp_is_in_no_period_not_even_all_time(): void
+    {
+        $this->widget(Carbon::now()->toDateTimeString());
+        DB::table('widgets')->insert(['kind' => 'rot', 'weight' => 1, 'happened_at' => null]);
+
+        $this->assertSame(1, (new WidgetMetric)->value($this->frage('30d')));
+        $this->assertSame(1, (new WidgetMetric)->value($this->frage('all')));
+        $this->assertSame(1, array_sum((new WidgetMetric)->series($this->frage('all'))));
+        $this->assertSame(1, array_sum(array_column((new WidgetMetric)->breakdown($this->frage('all'), 'kind'), 'value')));
+    }
+
     #[Test]
     public function it_buckets_by_day_and_leaves_the_empty_days_out(): void
     {
