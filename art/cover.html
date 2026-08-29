@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    background: radial-gradient(1200px 700px at 76% 20%, #1E1B4B 0%, #171438 55%, #06050F 100%);
+    color: #fff; overflow: hidden; position: relative;
+  }
+  .wrap { display: flex; height: 100%; align-items: center; padding: 0 92px; gap: 56px; }
+  .copy { max-width: 620px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 22px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    color: #A5B4FC; margin-bottom: 26px;
+  }
+  .eyebrow .dot { width: 12px; height: 12px; border-radius: 50%; background: #818CF8; box-shadow: 0 0 18px #818CF8; }
+  h1 { font-size: 78px; line-height: 1.02; font-weight: 800; letter-spacing: -.02em; }
+  h1 .accent { background: linear-gradient(90deg,#C7D2FE,#818CF8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  p.sub { margin-top: 28px; font-size: 30px; line-height: 1.35; color: #CBD5E1; font-weight: 400; }
+  .badges { margin-top: 40px; display: flex; gap: 14px; }
+  .badge { font-size: 22px; font-weight: 600; padding: 12px 22px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #A5B4FC; white-space: nowrap; }
+  .art { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .glyph { width: 340px; height: 340px; filter: drop-shadow(0 30px 60px rgba(0,0,0,.5)); }
+  .corner { position: absolute; right: -120px; bottom: -160px; width: 520px; height: 520px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #818CF847, transparent 60%); }
+</style>
+</head>
+<body>
+  <div class="corner"></div>
+  <div class="wrap">
+    <div class="copy">
+      <span class="eyebrow"><span class="dot"></span>Statamic Addon</span>
+      <h1>Statamic<br><span class="accent">Insights</span></h1>
+      <p class="sub">Which campaign sold anything. Revenue, campaigns and products, read from what your checkout already records.</p>
+      <div class="badges">
+        <span class="badge">Frozen at checkout</span>
+        <span class="badge">One currency</span>
+        <span class="badge">Nothing dropped</span>
+      </div>
+    </div>
+    <div class="art">
+      <svg class="glyph" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#818CF8"/><stop offset="1" stop-color="#1E1B4B"/>
+          </linearGradient>
+          <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#1E1B4B" flood-opacity="0.34"/>
+          </filter>
+        </defs>
+        <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+        <g filter="url(#sh)">
+          <rect x="118" y="286" width="72" height="80" rx="18" fill="#FFFFFF" fill-opacity="0.55"/>
+          <rect x="220" y="146" width="72" height="220" rx="18" fill="#FFFFFF"/>
+          <rect x="322" y="238" width="72" height="128" rx="18" fill="#FFFFFF" fill-opacity="0.55"/>
+        </g>
+        <rect x="106" y="386" width="300" height="18" rx="9" fill="#FFFFFF" fill-opacity="0.32"/>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

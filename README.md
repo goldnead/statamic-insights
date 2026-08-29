@@ -109,6 +109,17 @@ npm run build        # writes resources/dist/build, which is committed
 composer test
 ```
 
+## Screenshots
+
+![The revenue screen](screenshots/01-revenue-overview.png)
+
+More in `screenshots/`, captioned in `MARKETPLACE.md`.
+
+## Further reading
+
+- [`docs/reading-the-numbers.md`](docs/reading-the-numbers.md) — which question each
+  figure answers, and the three that are answered differently than you might expect.
+
 ## Licence
 
 Proprietary. See `LICENSE.md`.

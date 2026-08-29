@@ -2,6 +2,16 @@
 
 All notable changes to this addon are documented here.
 
+## 1.0.1 — 2026-08-29
+
+### Added
+
+- `docs/reading-the-numbers.md` — which question each figure answers, and the
+  three that are answered differently than a reader might expect: a refund
+  counts on the day the money went back, two currencies are never summed, and a
+  sale with no campaign is grouped rather than dropped.
+- Listing material: addon icon, cover, four Control Panel screenshots.
+
 ## 1.0.0 — 2026-08-29
 
 ### Added

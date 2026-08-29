@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <!-- Indigo-400 into indigo-950. Every sibling has its own hue and the
+         mid-tones were taken; this one goes light into very dark instead of
+         across, which reads as a different weight beside automations' indigo
+         even at 32 pixels in a nav. -->
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#1E1B4B"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#1E1B4B" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Three bars and a baseline, and the point is which one is lifted: this
+       addon exists to answer "which campaign earned it", not "how much came
+       in". A generic chart glyph would say the second. The tallest bar is
+       pulled clear of the row and given the full white, so the eye lands on
+       the one that earned — the same order the screen itself reads in. -->
+  <g filter="url(#sh)">
+    <rect x="118" y="286" width="72" height="80" rx="18" fill="#FFFFFF" fill-opacity="0.55"/>
+    <rect x="220" y="146" width="72" height="220" rx="18" fill="#FFFFFF"/>
+    <rect x="322" y="238" width="72" height="128" rx="18" fill="#FFFFFF" fill-opacity="0.55"/>
+  </g>
+
+  <rect x="106" y="386" width="300" height="18" rx="9" fill="#FFFFFF" fill-opacity="0.32"/>
+</svg>
