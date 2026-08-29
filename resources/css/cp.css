@@ -1,0 +1,13 @@
+/**
+ * Statamic Insights — Control Panel styles.
+ *
+ * Statamic's own Tailwind theme, not the bare framework: it carries the design
+ * tokens the CP is built from (content-bg, content-border, the gray scale,
+ * max-w-page, text-2xs) so this addon's markup matches the native panel rather
+ * than approximating it. It deliberately omits Preflight, so nothing here
+ * re-applies a CSS reset on top of the CP's base styles.
+ */
+
+@import "@statamic/cms/tailwind.css";
+
+@source "../js/**/*.{vue,js}";
