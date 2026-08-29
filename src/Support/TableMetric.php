@@ -113,7 +113,12 @@ abstract class TableMetric implements Metric
             // was found before shipping.
             ->whereNotNull($column)
             ->when($query->period->from, fn ($rows) => $rows->where($column, '>=', $query->period->from))
-            ->when($query->period->to, fn ($rows) => $rows->where($column, '<=', $query->period->to));
+            // Half-open: `< midnight` rather than `<= 23:59:59.999999`. A
+            // binding formats the upper bound as `Y-m-d H:i:s` and drops the
+            // fraction, so on a column storing milliseconds every row in the
+            // last second of the period fell out — invisibly, and only on some
+            // engines. Midnight is the same instant at every precision.
+            ->when($query->period->toExclusive(), fn ($rows) => $rows->where($column, '<', $query->period->toExclusive()));
     }
 
     /**

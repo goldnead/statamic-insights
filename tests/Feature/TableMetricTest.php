@@ -129,6 +129,42 @@ class TableMetricTest extends TestCase
         $this->assertSame(1, $geklemmt->value($this->frage('all')));
     }
 
+    /**
+     * The last fraction of a second of a period is still inside it.
+     *
+     * `to` is 23:59:59.999999 and a binding cuts the fraction off, so on a
+     * column storing milliseconds the comparison became
+     * `"23:59:59.500" <= "23:59:59"` — false, and the row vanished. On SQLite
+     * that is a text comparison and always wrong; on MySQL with a plain
+     * timestamp it happened to work, which is why a green suite never showed it.
+     */
+    #[Test]
+    public function a_row_in_the_last_fraction_of_a_second_is_still_in_the_period(): void
+    {
+        $ende = Carbon::now()->endOfDay();
+
+        DB::table('widgets')->insert([
+            'kind' => 'rot',
+            'weight' => 1,
+            'happened_at' => $ende->copy()->setTime(23, 59, 59)->format('Y-m-d H:i:s').'.500',
+        ]);
+
+        $this->assertSame(1, (new WidgetMetric)->value($this->frage('7d')));
+    }
+
+    /** And a row one second past midnight belongs to the next period, not this one. */
+    #[Test]
+    public function midnight_belongs_to_the_period_that_starts_there(): void
+    {
+        DB::table('widgets')->insert([
+            'kind' => 'rot',
+            'weight' => 1,
+            'happened_at' => Carbon::now()->addDay()->startOfDay()->format('Y-m-d H:i:s'),
+        ]);
+
+        $this->assertSame(0, (new WidgetMetric)->value($this->frage('7d')));
+    }
+
     #[Test]
     public function it_buckets_by_day_and_leaves_the_empty_days_out(): void
     {

@@ -74,6 +74,26 @@ final class Period
     }
 
     /**
+     * The first moment **after** the period, for a half-open comparison.
+     *
+     * `to` is 23:59:59.999999, and a database binding formats it as
+     * `Y-m-d H:i:s` — the fraction is cut off. On a column that stores
+     * milliseconds, `"23:59:59.500" <= "23:59:59"` is false as a string
+     * comparison, so every row in the last second of a period silently fell
+     * out. On SQLite that is a text comparison and always wrong; on MySQL with
+     * a plain `timestamp` it happened to be right, which is why a green suite
+     * never showed it.
+     *
+     * Comparing `< toExclusive` removes the question of precision entirely:
+     * the boundary is midnight, and midnight is the same instant at every
+     * precision.
+     */
+    public function toExclusive(): ?Carbon
+    {
+        return $this->to?->copy()->addSecond()->startOfSecond();
+    }
+
+    /**
      * Calendar days in the period, inclusive of both ends.
      *
      * Counted between the two **start-of-day** points, not between the raw
