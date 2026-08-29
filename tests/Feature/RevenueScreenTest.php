@@ -2,8 +2,11 @@
 
 namespace Goldnead\StatamicInsights\Tests\Feature;
 
+use Goldnead\StatamicInsights\Facades\Insights;
+use Goldnead\StatamicInsights\Support\MetricQuery;
 use Goldnead\StatamicInsights\Support\Period;
-use Goldnead\StatamicInsights\Support\RevenueReport;
+use Goldnead\StatamicInsights\Support\RevenueView;
+use Goldnead\StatamicInsights\Tests\Fakes\FakeRevenueMetric;
 use Goldnead\StatamicInsights\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -17,19 +20,30 @@ use PHPUnit\Framework\Attributes\Test;
  */
 class RevenueScreenTest extends TestCase
 {
+    /**
+     * With nothing registered there is nothing to draw — a state with a cause,
+     * not a screen full of zeroes.
+     *
+     * The arithmetic these two used to assert left this addon entirely when the
+     * queries moved to the one that owns the data. What remains here is the
+     * assembling, tested over HTTP in {@see RevenueRouteTest}.
+     */
     #[Test]
-    public function without_the_payments_tables_it_says_the_addon_is_missing(): void
+    public function the_curated_view_has_nothing_to_show_until_a_metric_is_registered(): void
     {
-        $this->assertFalse(RevenueReport::available());
+        $this->assertFalse(app(RevenueView::class)->available());
+        $this->assertSame(
+            ['installed' => false],
+            app(RevenueView::class)->assemble(new MetricQuery(Period::fromPreset('30d')))
+        );
     }
 
     #[Test]
-    public function with_the_tables_but_no_sales_it_is_a_different_state(): void
+    public function it_assembles_once_the_gross_figure_is_registered(): void
     {
-        $this->createPaymentsSchema();
+        Insights::registerMetric(new FakeRevenueMetric('payments.revenue_gross', 'Einnahmen'));
 
-        $this->assertTrue(RevenueReport::available());
-        $this->assertSame([], RevenueReport::currencies());
+        $this->assertTrue(app(RevenueView::class)->available());
     }
 
     /**

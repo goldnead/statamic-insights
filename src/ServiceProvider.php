@@ -3,6 +3,7 @@
 namespace Goldnead\StatamicInsights;
 
 use Goldnead\StatamicInsights\Integrations\ContactRevenuePanel;
+use Goldnead\StatamicInsights\Support\MetricRegistry;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
@@ -38,6 +39,13 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->mergeConfigFrom(__DIR__.'/../config/statamic-insights.php', 'statamic-insights');
 
+        // Singletons, and both have to be: a sibling addon registers into the
+        // registry while booting, and a registry rebuilt per resolution is a
+        // different object from the one the screen later reads — every
+        // contributed metric silently dropped.
+        $this->app->singleton(MetricRegistry::class);
+        $this->app->singleton(InsightsManager::class);
+
         $langPath = __DIR__.'/../resources/lang';
 
         // Two layers, and both are needed: `addNamespace` serves the PHP side
@@ -59,6 +67,7 @@ class ServiceProvider extends AddonServiceProvider
         $this->registerNavigation();
         $this->registerPermissions();
         $this->registerContactPanel();
+        $this->registerOwnMetrics();
 
         $this->publishes([
             __DIR__.'/../config/statamic-insights.php' => config_path('statamic-insights.php'),
@@ -98,6 +107,19 @@ class ServiceProvider extends AddonServiceProvider
         });
     }
 
+    /**
+     * This addon measures nothing of its own.
+     *
+     * The method exists as the seam and stays empty on purpose: every number
+     * comes from the addon that owns the data, and the day Insights starts
+     * counting something itself is the day it needs another addon's table
+     * again. If that day comes, it happens here and visibly.
+     */
+    protected function registerOwnMetrics(): void
+    {
+        //
+    }
+
     protected function registerNavigation(): void
     {
         Nav::extend(function ($nav) {
@@ -105,7 +127,14 @@ class ServiceProvider extends AddonServiceProvider
                 ->section('Tools')
                 ->icon('chart-monitoring-indicator')
                 ->route('insights.revenue')
-                ->can('view insights');
+                ->can('view insights')
+                ->children([
+                    // The curated screen stays first: it is the one somebody
+                    // opens with a question in mind. The generic list is where
+                    // you go when you do not know what you are looking for.
+                    $nav->item(__('statamic-insights::nav.revenue'))->route('insights.revenue'),
+                    $nav->item(__('statamic-insights::nav.metrics'))->route('insights.metrics'),
+                ]);
         });
     }
 

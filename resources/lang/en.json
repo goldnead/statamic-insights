@@ -26,5 +26,16 @@
     "Net is negative because more went back than came in during this period.": "Net is negative because more went back than came in during this period.",
     "The product rows add up to :sum, which differs from what was charged. Some line items were written past the checkout.": "The product rows add up to :sum, which differs from what was charged. Some line items were written past the checkout.",
     "By campaign (gross)": "By campaign (gross)",
-    "By product (gross)": "By product (gross)"
+    "By product (gross)": "By product (gross)",
+    "Metrics": "Metrics",
+    "All metrics": "All metrics",
+    "This period": "This period",
+    "Period before": "Period before",
+    "Change": "Change",
+    "Nothing to compare against": "Nothing to compare against",
+    "Split by": "Split by",
+    "Nothing to split in this period.": "Nothing to split in this period.",
+    "No addon is offering a number to report yet.": "No addon is offering a number to report yet.",
+    "Nothing registered": "Nothing registered",
+    "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves.": "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves."
 }

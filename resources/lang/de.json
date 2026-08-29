@@ -26,5 +26,16 @@
     "Net is negative because more went back than came in during this period.": "Netto ist negativ, weil in diesem Zeitraum mehr zurückging als hereinkam.",
     "The product rows add up to :sum, which differs from what was charged. Some line items were written past the checkout.": "Die Produktzeilen summieren sich auf :sum und weichen damit vom Berechneten ab. Einige Positionen wurden an der Kasse vorbei geschrieben.",
     "By campaign (gross)": "Nach Kampagne (brutto)",
-    "By product (gross)": "Nach Produkt (brutto)"
+    "By product (gross)": "Nach Produkt (brutto)",
+    "Metrics": "Kennzahlen",
+    "All metrics": "Alle Kennzahlen",
+    "This period": "Dieser Zeitraum",
+    "Period before": "Zeitraum davor",
+    "Change": "Veränderung",
+    "Nothing to compare against": "Kein Vergleich möglich",
+    "Split by": "Aufgeteilt nach",
+    "Nothing to split in this period.": "In diesem Zeitraum nichts aufzuteilen.",
+    "No addon is offering a number to report yet.": "Noch bietet kein Addon eine Kennzahl an.",
+    "Nothing registered": "Nichts angemeldet",
+    "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves.": "Jede Zahl hier kommt von dem Addon, dem die Daten gehören. Installiere eines, das misst — statamic-payments ist das erste — und seine Kennzahlen erscheinen hier von selbst."
 }
