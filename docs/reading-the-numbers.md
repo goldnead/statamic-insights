@@ -4,20 +4,32 @@ Every figure on the revenue screen is the answer to a question that could have
 been asked three different ways. This page says which way was chosen, and why —
 so that a number which looks surprising can be checked rather than distrusted.
 
-## Every figure is the current brand's
+## A figure counts one brand, unless its tile says otherwise
 
-On a multi-brand install, a tile counts the brand shown in the switcher — the
-same rows the listings beside it would show, filtered by the same rules the rest
-of the install uses. Switch brand and every number on the page changes with it.
+On a multi-brand install, a tile that knows about brands counts the one shown in
+the switcher — the same rows the listings beside it would show, filtered by the
+same rules the rest of the install uses. Switch brand and those numbers change
+with it.
 
-Pick no brand at all and the figures read zero rather than disappearing. That is
-deliberate: an unresolved brand is a question about the data, not a statement
-that the metric has ceased to exist, and a reader can make sense of a zero but
-cannot notice a tile that is not there.
+**Not every figure knows about brands, and the honest reason is that not every
+table has one.** Bookings, consent records and funnel visits carry no brand
+column at all, so those tiles are installation-wide. Nothing leaks there — the
+boundary was never drawn in the data — but it does mean "every number on this
+page is your brand's" would be a promise this addon cannot keep. A tile that
+counts across brands says so in its own description; if it says nothing, it
+counted one.
 
-A number meant to span all brands is allowed — a suppression list is arguably
-one such — but it has to say so in its own description. If a tile does not say
-otherwise, it counted one brand.
+The suppression list is the deliberate case rather than the accidental one. Its
+table *does* carry a brand column, and the figures still span every brand,
+because a `brand_id` of nought there means "applies to all" — that is how a hard
+bounce is recorded. Filtering on the current brand would throw exactly those
+entries away and report fewer blocked addresses than actually stop that brand's
+sends: wrong in the dangerous direction.
+
+Pick no brand at all and the brand-aware figures read zero rather than
+disappearing. That is deliberate: an unresolved brand is a question about the
+data, not a statement that the metric has ceased to exist, and a reader can make
+sense of a zero but cannot notice a tile that is not there.
 
 On a single-brand install none of this applies and nothing is filtered.
 

@@ -7,6 +7,14 @@ All notable changes to this addon are documented here.
 Insights stops being a revenue report with a screen and becomes what it was
 meant to be: **reporting for the family, where any addon contributes a number.**
 
+### Upgrading from 1.0
+
+Run `php artisan cache:clear` once. This release adds a second page under the
+Insights nav item, and Statamic caches the list of URLs its navigation knows
+about — until that cache is rebuilt, the breadcrumb on the new *Metrics* screen
+still reads *Revenue* while the heading and the sidebar read *Metrics*. Nothing
+is wrong with the figures.
+
 ### Added
 
 - **A metric contract.** `Metric` plus the optional `HasBreakdowns` and
