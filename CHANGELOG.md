@@ -2,29 +2,6 @@
 
 All notable changes to this addon are documented here.
 
-## Unreleased
-
-### Fixed
-
-- **Figures crossed brand boundaries.** On a multi-brand install with a brand
-  selected, several tiles summed every brand — one of them showing four
-  invoices belonging to three other brands while the switcher said a fourth.
-  The rule now lives once, in `TableMetric::brandScoped()`, transcribed from
-  `statamic-brand-context`'s own scope; a contributor declares `brandColumn()`
-  and the figure, the chart and every split narrow together.
-- **An unresolved brand removed metrics from the screen** instead of reading
-  zero. `available()` answers whether a metric exists; a brand nobody has picked
-  is not the metric ceasing to exist.
-- **Groups appeared in service-provider boot order**, so installing any addon
-  reshuffled every other addon's section. They are sorted by heading now.
-
-### Changed
-
-- The contract states two house rules it had left to each contributor: what
-  `available()` may answer, and how a rate is counted. Existing departures are
-  allowed, but have to be named in the metric's own `description()`.
-- `suggest` lists all fourteen contributing addons rather than two.
-
 ## 1.1.0 — 2026-08-29
 
 Insights stops being a revenue report with a screen and becomes what it was
@@ -59,6 +36,30 @@ meant to be: **reporting for the family, where any addon contributes a number.**
   chart; it is the number above it, stretched.
 - Negative buckets are drawn downwards and in the danger colour. Drawn upwards
   they were indistinguishable from a small positive day.
+- The contract states two house rules it had left to each contributor: what
+  `available()` may answer, and how a rate is counted. Existing departures stay
+  allowed, but have to be named in the metric's own `description()`.
+- `suggest` lists all fourteen contributing addons rather than two.
+
+### Fixed
+
+- **Figures crossed brand boundaries.** On a multi-brand install with a brand
+  selected, several tiles summed every brand — one of them showing four
+  invoices belonging to three other brands while the switcher said a fourth.
+  The rule now lives once, in `TableMetric::brandScoped()`, transcribed from
+  `statamic-brand-context`'s own scope; a contributor declares `brandColumn()`
+  and the figure, the chart and every split narrow together.
+- **An unresolved brand removed metrics from the screen** instead of reading
+  zero. `available()` answers whether a metric exists; a brand nobody has picked
+  is not the metric ceasing to exist.
+- **The clamp on "now" read the wrong clock.** `untilNow()` compared against the
+  application's timezone, so a column stored in UTC lost the newest hours —
+  five of them on a US host, and none at all on a UTC site, which is why
+  whoever wrote the metric never saw it. A metric names its column's zone with
+  `zone()` now; two addons had answered it by restating `untilNow()`, which is
+  how the three earlier defects in that class reached only half the family.
+- **Groups appeared in service-provider boot order**, so installing any addon
+  reshuffled every other addon's section. They are sorted by heading now.
 
 ### Removed
 
