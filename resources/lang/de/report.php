@@ -15,4 +15,5 @@ return [
     'contact_refund_badge' => 'zurück',
     'contact_first' => 'Erster Kauf',
     'contact_last' => 'Letzter Kauf',
+    'unassigned' => 'Ohne Zuordnung',
 ];

@@ -106,6 +106,46 @@ The metric then appears on **every screen this addon has, present and future**,
 with the period, the comparison against the period before, the chart and the
 formatting done for it.
 
+### If your numbers live in a table
+
+`TableMetric` does the part every table-backed metric would write again:
+windowing a period, bucketing a timestamp in three SQL dialects, splitting by a
+column without dropping the rows whose value is null.
+
+```php
+class NewMembers extends TableMetric
+{
+    protected function table(): string     { return 'memberships'; }
+    protected function timestamp(): string { return 'started_at'; }
+
+    public function handle(): string { return 'memberships.started'; }
+    public function label(): string  { return __('New memberships'); }
+    public function group(): string  { return __('Memberships'); }
+    public function unit(): string   { return Unit::COUNT; }
+
+    public function value(MetricQuery $q): int|float|null
+    {
+        return $this->inPeriod($q)->count();
+    }
+
+    public function series(MetricQuery $q): array
+    {
+        return $this->bucketed($this->inPeriod($q), $q, 'count(*)');
+    }
+}
+```
+
+Override `inPeriod()` to add the conditions that make a row count at all — a
+status, a brand, a soft delete. Put them there and they apply to the figure, the
+chart and every split at once, where they cannot be forgotten in one of them.
+
+Optional, not required. A metric whose numbers come from a file store, an API or
+a calculation implements `Metric` directly and ignores this.
+
+**Pick the timestamp deliberately.** There is no default, on purpose: the row is
+written when the software noticed, and the fact happened when it happened. A
+payment paid on the 30th and recorded on the 1st belongs to the 30th.
+
 ### Two optional extras
 
 ```php

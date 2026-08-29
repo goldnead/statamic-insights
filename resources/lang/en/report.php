@@ -15,4 +15,5 @@ return [
     'contact_refund_badge' => 'returned',
     'contact_first' => 'First purchase',
     'contact_last' => 'Last purchase',
+    'unassigned' => 'Unassigned',
 ];
