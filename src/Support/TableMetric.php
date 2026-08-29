@@ -5,6 +5,7 @@ namespace Goldnead\StatamicInsights\Support;
 use Goldnead\StatamicInsights\Contracts\HasBreakdowns;
 use Goldnead\StatamicInsights\Contracts\Metric;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -113,6 +114,33 @@ abstract class TableMetric implements Metric
             ->whereNotNull($column)
             ->when($query->period->from, fn ($rows) => $rows->where($column, '>=', $query->period->from))
             ->when($query->period->to, fn ($rows) => $rows->where($column, '<=', $query->period->to));
+    }
+
+    /**
+     * The same window, but never reaching past this moment.
+     *
+     * **A decision every metric has to make, which is why this is opt-in and
+     * named rather than done for you.** An open-ended period has no upper
+     * bound, and these tables are full of the future: a pre-order starting next
+     * month, a licence expiring next year, a campaign scheduled for Friday,
+     * a task due on Monday. Counted without a clamp, the widest range reports
+     * all of it as though it had already happened.
+     *
+     * Clamp when the metric answers **what happened** — sales, cancellations,
+     * confirmations, bounces. Do not clamp when it answers **what is
+     * scheduled** — upcoming events, due tasks, pending retries — because there
+     * the future is the point, and a screen that hid it would be lying by
+     * omission instead.
+     *
+     * Found by a contributor whose tables carried pre-orders. It is the sibling
+     * of the null-timestamp defect one method up: there the condition was
+     * missing entirely, here only its upper half.
+     */
+    protected function untilNow(MetricQuery $query, ?string $column = null): Builder
+    {
+        $column ??= $this->timestamp();
+
+        return $this->inPeriod($query, $column)->where($column, '<=', Carbon::now());
     }
 
     /**

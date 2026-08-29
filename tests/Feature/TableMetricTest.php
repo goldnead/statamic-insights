@@ -107,6 +107,28 @@ class TableMetricTest extends TestCase
         $this->assertSame(1, array_sum(array_column((new WidgetMetric)->breakdown($this->frage('all'), 'kind'), 'value')));
     }
 
+    /**
+     * "All time" has no upper bound, and these tables are full of the future.
+     *
+     * A pre-order starting next month, a licence expiring next year, a campaign
+     * scheduled for Friday. `untilNow()` is how a metric that answers "what
+     * happened" says so; one that answers "what is scheduled" leaves it off,
+     * and the future is then the point rather than a bug.
+     */
+    #[Test]
+    public function until_now_keeps_the_future_out_of_the_widest_range(): void
+    {
+        $this->widget(Carbon::now()->subDay()->toDateTimeString());
+        $this->widget(Carbon::now()->addMonth()->toDateTimeString());
+
+        $offen = new WidgetMetric;
+        $geklemmt = new WidgetMetric(clamped: true);
+
+        // Unclamped, "all time" reports the pre-order as though it had happened.
+        $this->assertSame(2, $offen->value($this->frage('all')));
+        $this->assertSame(1, $geklemmt->value($this->frage('all')));
+    }
+
     #[Test]
     public function it_buckets_by_day_and_leaves_the_empty_days_out(): void
     {
