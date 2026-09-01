@@ -76,7 +76,9 @@ class UpsellPerformance extends TableReport
             $this->column('shown', __('statamic-insights::reports.col_shown'), Unit::COUNT),
             $this->column('accepted', __('statamic-insights::reports.col_accepted'), Unit::COUNT),
             $this->column('conversion', __('statamic-insights::reports.col_conversion'), Unit::PERCENT),
-            $this->column('revenue_cent', __('statamic-insights::reports.col_revenue'), Unit::CURRENCY),
+            // Named for what it is: an attribution by product and slot, not a
+            // ledger per offer — `payment_items` carries no offer handle yet.
+            $this->column('revenue_cent', __('statamic-insights::reports.col_revenue_attributed'), Unit::CURRENCY),
         ];
     }
 

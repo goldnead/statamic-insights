@@ -20,6 +20,12 @@ use Goldnead\StatamicInsights\Support\Unit;
  * provider and did not finish. `initiated` rows — a checkout that never left
  * the site — and `failed` or `canceled` ones are neither, and are not in this
  * table; the sum of the two columns is therefore less than all checkouts.
+ *
+ * Not the same set as the payments addon's abandonment mail: its
+ * `Abandonment::OFFEN` is `initiated` + `open` (a checkout that may still
+ * finish), this table's *left* is `open` + `expired` (one that did not). The
+ * two numbers answer different questions and need not agree; the description
+ * on the screen says so.
  */
 class CartAbandonment extends TableReport
 {
