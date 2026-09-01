@@ -60,6 +60,36 @@ split across line items so an order bump is credited to itself.
 The period and currency live in the query string — `?period=90d&currency=CHF` —
 so a view can be shared or bookmarked.
 
+### Reports
+
+The third screen, **Reports**, is for the questions a single number cannot
+answer. Six tables ship with the addon:
+
+| | Rows | Reads |
+|---|---|---|
+| **Revenue by month** | month × currency: gross, payments, average order | `payments` |
+| **Revenue by product** | product × currency: sold, orders, gross | `payment_items` ⋈ `payments` |
+| **Payments by country** | country × currency: payments, gross — no country is its own row | `payments` |
+| **Cart abandonment** | month opened: paid, open + expired, rate over exactly those rows | `payments` |
+| **Order bumps and post-purchase offers** | offer: shown, accepted, conversion, revenue | `offers`, `payment_items` |
+| **Active access by product** | access slug: active, in grace, expired — a snapshot | `entitlements` |
+
+These are the one place this addon reads a sibling's tables itself, and it is
+done in the open: every report names the package it reads, checks that the
+package's class exists and its table is there, and when either is missing
+stays on the list with a badge and opens to a sentence saying what to install.
+Nothing throws, nothing disappears.
+
+Two things the descriptions say and are worth repeating: the upsell counters
+(`shown_count`, `accepted_count`) are lifetime figures the offers addon keeps
+on the row, so only that report's revenue column follows the period; and
+upsell revenue is credited by product and slot, not by offer, because a line
+item does not record which offer sold it.
+
+A sibling can register reports of its own with `Insights::registerReport()`;
+the contract is `Contracts\Report` and `Support\TableReport` does the
+windowing, the month bucket and the brand narrowing for a table-backed one.
+
 ## Contributing a metric
 
 **This is the point of the addon.** Insights owns time ranges, comparisons,

@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Facade;
  * @method static array<int, string> metricHandles()
  * @method static Metric|null metric(string $handle)
  * @method static array<string, Metric> metrics()
+ * @method static void registerReport(string|\Goldnead\StatamicInsights\Contracts\Report $report, ?string $handle = null)
+ * @method static array<int, string> reportHandles()
+ * @method static \Goldnead\StatamicInsights\Contracts\Report|null report(string $handle)
+ * @method static array<string, \Goldnead\StatamicInsights\Contracts\Report> reports()
  *
  * @see InsightsManager
  */

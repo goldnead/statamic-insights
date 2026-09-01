@@ -1,6 +1,7 @@
 <?php
 
 use Goldnead\StatamicInsights\Http\Controllers\Cp\MetricController;
+use Goldnead\StatamicInsights\Http\Controllers\Cp\ReportController;
 use Goldnead\StatamicInsights\Http\Controllers\Cp\RevenueController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,4 +21,6 @@ Route::prefix('insights')->name('insights.')->group(function () {
     Route::get('/', [RevenueController::class, 'index'])->name('revenue');
     Route::get('/metrics', [MetricController::class, 'index'])->name('metrics');
     Route::get('/metrics/{metric}', [MetricController::class, 'show'])->name('metrics.show');
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports');
+    Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
 });

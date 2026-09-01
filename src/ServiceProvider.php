@@ -2,8 +2,17 @@
 
 namespace Goldnead\StatamicInsights;
 
+use Goldnead\StatamicInsights\Contracts\Report;
 use Goldnead\StatamicInsights\Integrations\ContactRevenuePanel;
+use Goldnead\StatamicInsights\Reports\AccessByProduct;
+use Goldnead\StatamicInsights\Reports\CartAbandonment;
+use Goldnead\StatamicInsights\Reports\PaymentsByCountry;
+use Goldnead\StatamicInsights\Reports\RevenueByMonth;
+use Goldnead\StatamicInsights\Reports\RevenueByProduct;
+use Goldnead\StatamicInsights\Reports\UpsellPerformance;
 use Goldnead\StatamicInsights\Support\MetricRegistry;
+use Goldnead\StatamicInsights\Support\Neighbours;
+use Goldnead\StatamicInsights\Support\ReportRegistry;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
@@ -44,6 +53,7 @@ class ServiceProvider extends AddonServiceProvider
         // different object from the one the screen later reads — every
         // contributed metric silently dropped.
         $this->app->singleton(MetricRegistry::class);
+        $this->app->singleton(ReportRegistry::class);
         $this->app->singleton(InsightsManager::class);
 
         $langPath = __DIR__.'/../resources/lang';
@@ -68,6 +78,7 @@ class ServiceProvider extends AddonServiceProvider
         $this->registerPermissions();
         $this->registerContactPanel();
         $this->registerOwnMetrics();
+        $this->registerOwnReports();
 
         $this->publishes([
             __DIR__.'/../config/statamic-insights.php' => config_path('statamic-insights.php'),
@@ -120,6 +131,36 @@ class ServiceProvider extends AddonServiceProvider
         //
     }
 
+    /**
+     * The six tabular reports this addon ships itself.
+     *
+     * This is the day the seam above warned about, and it happens here and
+     * visibly: these reports read `payments`, `payment_items`, `offers` and
+     * `entitlements` directly. Taken on purpose — the questions they answer
+     * span several siblings' tables at once, and no single one of them is the
+     * natural owner of "upsell revenue" or "buyers per country". Every read is
+     * behind {@see Neighbours}: class
+     * existence and table existence, or the report says what it would need.
+     */
+    protected function registerOwnReports(): void
+    {
+        $registry = $this->app->make(ReportRegistry::class);
+
+        foreach (self::OWN_REPORTS as $class => $handle) {
+            $registry->register($class, $handle);
+        }
+    }
+
+    /** @var array<class-string<Report>, string> */
+    public const OWN_REPORTS = [
+        RevenueByMonth::class => 'payments.revenue_by_month',
+        RevenueByProduct::class => 'payments.revenue_by_product',
+        PaymentsByCountry::class => 'payments.by_country',
+        CartAbandonment::class => 'payments.abandonment',
+        UpsellPerformance::class => 'offers.upsells',
+        AccessByProduct::class => 'entitlements.access_by_product',
+    ];
+
     protected function registerNavigation(): void
     {
         Nav::extend(function ($nav) {
@@ -134,6 +175,7 @@ class ServiceProvider extends AddonServiceProvider
                     // you go when you do not know what you are looking for.
                     $nav->item(__('statamic-insights::nav.revenue'))->route('insights.revenue'),
                     $nav->item(__('statamic-insights::nav.metrics'))->route('insights.metrics'),
+                    $nav->item(__('statamic-insights::nav.reports'))->route('insights.reports'),
                 ]);
         });
     }

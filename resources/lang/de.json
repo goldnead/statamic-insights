@@ -37,5 +37,20 @@
     "Nothing to split in this period.": "In diesem Zeitraum nichts aufzuteilen.",
     "No addon is offering a number to report yet.": "Noch bietet kein Addon eine Kennzahl an.",
     "Nothing registered": "Nichts angemeldet",
-    "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves.": "Jede Zahl hier kommt von dem Addon, dem die Daten gehören. Installiere eines, das misst — statamic-payments ist das erste — und seine Kennzahlen erscheinen hier von selbst."
+    "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves.": "Jede Zahl hier kommt von dem Addon, dem die Daten gehören. Installiere eines, das misst — statamic-payments ist das erste — und seine Kennzahlen erscheinen hier von selbst.",
+    "Reports": "Berichte",
+    "All reports": "Alle Berichte",
+    "Not installed": "Nicht installiert",
+    "Requires :package": "Braucht :package",
+    "This report reads what :package records, and that addon is not installed.": "Dieser Bericht liest, was :package aufzeichnet — und dieses Addon ist nicht installiert.",
+    "Install it, run its migrations, and the rows appear here by themselves.": "Installiere es und lass seine Migrationen laufen, dann erscheinen die Zeilen hier von selbst.",
+    "Nothing in this period.": "In diesem Zeitraum nichts.",
+    "Nothing to report yet.": "Noch nichts zu berichten.",
+    "As of now": "Stand jetzt",
+    "This report could not be built. The log says why.": "Dieser Bericht konnte nicht aufgebaut werden. Das Log sagt, warum.",
+    "No report is registered yet.": "Noch ist kein Bericht angemeldet.",
+    "Nothing to show": "Nichts anzuzeigen",
+    "Reports are tables over what the family records. The six this addon ships appear as soon as it boots; a sibling can register more.": "Berichte sind Tabellen über das, was die Addon-Familie aufzeichnet. Die sechs mitgelieferten erscheinen, sobald das Addon startet; ein Nachbar kann weitere anmelden.",
+    ":count rows": ":count Zeilen",
+    "Inactive": "Inaktiv"
 }

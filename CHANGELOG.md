@@ -2,6 +2,46 @@
 
 All notable changes to this addon are documented here.
 
+## Unreleased
+
+### Added: Reports, a third screen
+
+Tables, where the metrics are numbers. A metric with a breakdown carries one value per
+row; "revenue per month with the order count and the average beside it" is three. So
+there is now a `Report` contract next to `Metric` — handle, label, group, columns,
+rows, `usesPeriod()` — with its own registry (`Insights::registerReport()`), reader and
+two screens under **Tools → Insights → Reports**. Same period picker, same failure
+containment: a report whose `rows()` throws costs its own table and a line in the log,
+never the page.
+
+One difference from metrics, on purpose: a report whose source is missing is **not
+hidden**. It stays on the list with a badge and opens to a sentence naming the package it
+would need. A list of reports doubles as a list of what the suite can tell you.
+
+### Added: six reports of its own
+
+This is the day the empty `registerOwnMetrics()` seam warned about, and it happens
+visibly. Insights now reads the tables of three siblings directly, each read behind a
+class-existence and table-existence probe (`Support\Neighbours`):
+
+| Report | Reads | Rows |
+| --- | --- | --- |
+| Revenue by month | `payments` | month × currency: gross, count, average |
+| Revenue by product | `payment_items` ⋈ `payments` | product × currency: sold, orders, gross |
+| Payments by country | `payments.country` | country × currency: count, gross; unknown kept |
+| Cart abandonment | `payments.created_at`, `status` | month: paid, open+expired, rate over the cohort |
+| Order bumps and post-purchase offers | `offers`, plus `payment_items` when payments is there | offer: shown, accepted, conversion, revenue by product and slot |
+| Active access by product | `entitlements` | slug: active, in grace, expired — a snapshot |
+
+Taken because these questions span several addons' tables at once and no single sibling
+is the natural owner of "upsell revenue". The neighbours' own `TableMetric` is left
+untouched — four sibling suites pin its source — so the reports carry a transcription of
+its brand narrowing and month bucketing in two traits under `Support\Concerns`, to be
+kept in step by hand until a coordinated release lets `TableMetric` use them.
+
+Nothing in the public contract layer changed: `Metric`, `HasBreakdowns`,
+`HasFilterOptions`, `MetricQuery`, `Period`, `Unit` and `TableMetric` are byte-identical.
+
 ## 1.1.1 — 2026-08-29
 
 Nur Dokumentation, kein Codeunterschied zu 1.1.0. Zwei Dinge, die im Paket

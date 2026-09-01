@@ -3,7 +3,9 @@
 namespace Goldnead\StatamicInsights;
 
 use Goldnead\StatamicInsights\Contracts\Metric;
+use Goldnead\StatamicInsights\Contracts\Report;
 use Goldnead\StatamicInsights\Support\MetricRegistry;
+use Goldnead\StatamicInsights\Support\ReportRegistry;
 
 /**
  * The public surface another addon touches.
@@ -15,7 +17,10 @@ use Goldnead\StatamicInsights\Support\MetricRegistry;
  */
 class InsightsManager
 {
-    public function __construct(protected MetricRegistry $registry) {}
+    public function __construct(
+        protected MetricRegistry $registry,
+        protected ReportRegistry $reports,
+    ) {}
 
     /**
      * Announce something countable.
@@ -49,5 +54,31 @@ class InsightsManager
     public function metrics(): array
     {
         return $this->registry->available();
+    }
+
+    /**
+     * Announce a table of rows — see {@see Report} for how it differs from a
+     * metric. Same timing rule as {@see registerMetric()}: from `booted()`.
+     */
+    public function registerReport(string|Report $report, ?string $handle = null): void
+    {
+        $this->reports->register($report, $handle);
+    }
+
+    /** @return array<int, string> */
+    public function reportHandles(): array
+    {
+        return $this->reports->handles();
+    }
+
+    public function report(string $handle): ?Report
+    {
+        return $this->reports->find($handle);
+    }
+
+    /** @return array<string, Report> */
+    public function reports(): array
+    {
+        return $this->reports->all();
     }
 }

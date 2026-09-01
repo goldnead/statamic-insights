@@ -37,5 +37,20 @@
     "Nothing to split in this period.": "Nothing to split in this period.",
     "No addon is offering a number to report yet.": "No addon is offering a number to report yet.",
     "Nothing registered": "Nothing registered",
-    "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves.": "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves."
+    "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves.": "Every figure here is contributed by the addon that owns the data. Install one that reports — statamic-payments is the first — and its metrics appear on this screen by themselves.",
+    "Reports": "Reports",
+    "All reports": "All reports",
+    "Not installed": "Not installed",
+    "Requires :package": "Requires :package",
+    "This report reads what :package records, and that addon is not installed.": "This report reads what :package records, and that addon is not installed.",
+    "Install it, run its migrations, and the rows appear here by themselves.": "Install it, run its migrations, and the rows appear here by themselves.",
+    "Nothing in this period.": "Nothing in this period.",
+    "Nothing to report yet.": "Nothing to report yet.",
+    "As of now": "As of now",
+    "This report could not be built. The log says why.": "This report could not be built. The log says why.",
+    "No report is registered yet.": "No report is registered yet.",
+    "Nothing to show": "Nothing to show",
+    "Reports are tables over what the family records. The six this addon ships appear as soon as it boots; a sibling can register more.": "Reports are tables over what the family records. The six this addon ships appear as soon as it boots; a sibling can register more.",
+    ":count rows": ":count rows",
+    "Inactive": "Inactive"
 }

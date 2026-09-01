@@ -10,9 +10,13 @@
 import Revenue from './pages/Revenue.vue';
 import Metrics from './pages/Metrics.vue';
 import Metric from './pages/Metric.vue';
+import Reports from './pages/Reports.vue';
+import Report from './pages/Report.vue';
 
 Statamic.booting(() => {
     Statamic.$inertia.register('insights::Revenue', Revenue);
     Statamic.$inertia.register('insights::Metrics', Metrics);
     Statamic.$inertia.register('insights::Metric', Metric);
+    Statamic.$inertia.register('insights::Reports', Reports);
+    Statamic.$inertia.register('insights::Report', Report);
 });

@@ -4,4 +4,5 @@ return [
     'insights' => 'Auswertung',
     'revenue' => 'Umsatz',
     'metrics' => 'Kennzahlen',
+    'reports' => 'Berichte',
 ];
