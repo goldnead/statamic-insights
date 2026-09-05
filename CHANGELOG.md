@@ -2,6 +2,26 @@
 
 All notable changes to this addon are documented here.
 
+## 1.2.2 — 2026-09-05
+
+### Fixed: a split with tied figures came back in whatever order the driver felt like
+
+`splitByColumn()` sorted by the figure alone. For rows that **tie** that promises nothing, and
+the database decides — differently per driver. The same two rows came back one way on SQLite and
+the other way on MySQL. On screen that is a list which reshuffles for no reason; in a suite it is
+green on the laptop and red on CI, which is where it surfaced (`statamic-events`, 2026-09-05).
+Small counts, fresh installs and quiet weeks produce ties constantly, so the case is not rare.
+
+There is now a second sort key: the column itself. At the cut-off it is more than cosmetic — with
+a tie sitting exactly where `$limit` cuts, it used to depend on the driver **which** row came back
+at all, not merely in what order.
+
+This is the same lesson as 1.2.1 one method over. `bucketExpression()` learned it for series
+back then; the split never had it.
+
+Thirteen addons carry `TableMetric` as a byte-for-byte copy under `tests/Fakes/`. All of them
+have been brought along.
+
 ## 1.2.1 — 2026-09-05
 
 ### Fixed: series buckets come back in order on MySQL
