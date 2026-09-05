@@ -240,6 +240,50 @@ class TableMetricTest extends TestCase
     }
 
     /**
+     * Gleiche Kennzahl, feste Reihenfolge.
+     *
+     * Ohne zweites Sortierkriterium entscheidet bei einem Gleichstand die
+     * Datenbank, und sie entscheidet je nach Treiber anders: dieselben Zeilen
+     * kamen unter SQLite in der einen und unter MySQL in der anderen Ordnung
+     * zurueck. Auf dem Schirm ist das eine Liste, die ohne Grund springt.
+     *
+     * Der Fall ist nicht selten: kleine Zaehlungen, frische Installationen und
+     * ruhige Wochen erzeugen laufend gleiche Werte.
+     */
+    #[Test]
+    public function a_tie_is_broken_by_the_key_not_by_the_driver(): void
+    {
+        $this->widget(Carbon::now()->toDateTimeString(), 'rot');
+        $this->widget(Carbon::now()->toDateTimeString(), 'blau');
+        $this->widget(Carbon::now()->toDateTimeString(), 'gelb');
+
+        $zeilen = (new WidgetMetric)->breakdown($this->frage(), 'kind');
+
+        $this->assertSame([1, 1, 1], array_column($zeilen, 'value'));
+        $this->assertSame(['blau', 'gelb', 'rot'], array_column($zeilen, 'key'));
+    }
+
+    /**
+     * An der Abschneidekante ist es mehr als Kosmetik.
+     *
+     * Steht ein Gleichstand genau dort, wo `$limit` schneidet, haengt ohne
+     * zweites Kriterium vom Treiber ab, *welche* Zeile ueberhaupt
+     * zurueckkommt — nicht nur, in welcher Reihenfolge.
+     */
+    #[Test]
+    public function the_cut_off_takes_the_same_row_on_every_driver(): void
+    {
+        $this->widget(Carbon::now()->toDateTimeString(), 'rot');
+        $this->widget(Carbon::now()->toDateTimeString(), 'rot');
+        $this->widget(Carbon::now()->toDateTimeString(), 'blau');
+        $this->widget(Carbon::now()->toDateTimeString(), 'gelb');
+
+        $zeilen = (new WidgetMetric)->breakdown($this->frage(), 'kind', 2);
+
+        $this->assertSame(['rot', 'blau'], array_column($zeilen, 'key'));
+    }
+
+    /**
      * A row whose value is null is a row.
      *
      * Dropped, the split disagrees with the total and nothing on the screen
