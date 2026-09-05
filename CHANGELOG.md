@@ -2,6 +2,20 @@
 
 All notable changes to this addon are documented here.
 
+## 1.2.1 — 2026-09-05
+
+### Fixed: series buckets come back in order on MySQL
+
+`TableMetric::bucketed()` grouped by the bucket and never ordered by it. `GROUP BY`
+promises no order; SQLite happens to return the groups sorted, MySQL 8 returns them in the
+order it met the rows. A series built on MySQL could therefore arrive with its days out of
+sequence, and every addon whose metrics extend `TableMetric` inherited that. The query now
+carries an explicit `ORDER BY bucket`; a test inserts the rows newest-first and asserts the
+keys ascend.
+
+Addons that keep a verbatim copy of `TableMetric` in their test suite
+(`tests/Fakes/insights-table-metric.php`) need to copy this version across.
+
 ## 1.2.0 — 2026-09-02
 
 ### Added: Reports, a third screen

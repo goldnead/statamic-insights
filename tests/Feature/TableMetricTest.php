@@ -192,6 +192,28 @@ class TableMetricTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_the_buckets_in_ascending_order_whatever_order_the_rows_arrived_in(): void
+    {
+        // Newest first, on purpose: GROUP BY promises no order, and MySQL 8
+        // returns the groups in whatever order it met them. The series has to
+        // come back sorted regardless, or the chart draws backwards in time.
+        foreach ([0, 5, 2, 6, 1] as $tage) {
+            $this->widget(Carbon::now()->subDays($tage)->toDateTimeString());
+        }
+
+        $reihe = (new WidgetMetric)->series($this->frage('7d'));
+
+        $schluessel = array_keys($reihe);
+        $sortiert = $schluessel;
+        sort($sortiert);
+
+        $this->assertCount(5, $reihe);
+        $this->assertSame($sortiert, $schluessel);
+        $this->assertSame(Carbon::now()->subDays(6)->format('Y-m-d'), $schluessel[0]);
+        $this->assertSame(Carbon::now()->format('Y-m-d'), $schluessel[4]);
+    }
+
+    #[Test]
     public function it_buckets_by_month_over_a_long_range(): void
     {
         $this->widget(Carbon::now()->subMonths(2)->toDateTimeString());
