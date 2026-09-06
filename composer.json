@@ -51,7 +51,8 @@
         "statamic": {
             "name": "Insights",
             "description": "Revenue, campaigns and products — read from what the family already records.",
-            "developer": "Adrian Goldner"
+            "developer": "Adrian Goldner",
+            "developer-url": "https://adriangoldner.dev"
         },
         "laravel": {
             "providers": [
