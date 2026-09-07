@@ -2,6 +2,7 @@
 
 namespace Goldnead\StatamicInsights;
 
+use Goldnead\BrandContext\Settings\SettingsRegistry;
 use Goldnead\StatamicInsights\Contracts\Report;
 use Goldnead\StatamicInsights\Integrations\ContactRevenuePanel;
 use Goldnead\StatamicInsights\Reports\AccessByProduct;
@@ -13,6 +14,7 @@ use Goldnead\StatamicInsights\Reports\UpsellPerformance;
 use Goldnead\StatamicInsights\Support\MetricRegistry;
 use Goldnead\StatamicInsights\Support\Neighbours;
 use Goldnead\StatamicInsights\Support\ReportRegistry;
+use Goldnead\StatamicInsights\Support\Settings;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
@@ -70,6 +72,24 @@ class ServiceProvider extends AddonServiceProvider
             $this->app['translator']->addNamespace('statamic-insights', $langPath);
             $this->app['translator']->addJsonPath($langPath);
         }
+    }
+
+    /**
+     * Announce this addon's settings to the suite's shared screen.
+     *
+     * In `boot()`, not in `bootAddon()`, and that is not a style choice.
+     * brand-context applies the stored overrides from an `app->booted()`
+     * callback so that every provider has had its turn first. `bootAddon()`
+     * itself runs from an `app->booted()` callback of Statamic's, and which of
+     * the two fires first depends on package load order — registering there
+     * would mean these settings reach the live config on some installs and not
+     * on others, with nothing on screen to say which.
+     */
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->app->make(SettingsRegistry::class)->register(Settings::class);
     }
 
     public function bootAddon(): void
@@ -186,6 +206,13 @@ class ServiceProvider extends AddonServiceProvider
             Permission::group('statamic-insights', __('statamic-insights::nav.insights'), function () {
                 Permission::register('view insights')
                     ->label(__('statamic-insights::permissions.view_insights'));
+
+                // The permission brand-context checks before it shows this
+                // addon's section on the shared settings screen. Registered
+                // here because the addon owns its permissions; the shared
+                // layer only asks which one to check.
+                Permission::register('manage insights settings')
+                    ->label(__('statamic-insights::permissions.manage_insights_settings'));
             });
         });
     }

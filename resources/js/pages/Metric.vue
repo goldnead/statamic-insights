@@ -83,7 +83,7 @@ const dimensionOptions = computed(() =>
                     <Heading
                         v-if="metric.delta !== null"
                         size="2xl"
-                        :text="`${metric.delta > 0 ? '+' : ''}${metric.delta}%`"
+                        :text="`${metric.delta > 0 ? '+' : ''}${metric.delta} %`"
                     />
                     <!--
                         No percentage where one would be a claim: no period

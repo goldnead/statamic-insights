@@ -2,6 +2,41 @@
 
 All notable changes to this addon are documented here.
 
+## 1.3.0 — 2026-09-07
+
+### Geändert: die Kennzahlen sind eine Tabelle, kein Karten-Raster
+
+Jede Kennzahl war eine Karte mit Überschrift, Zahl, Veränderung und zwei bis drei Zeilen
+Erklärtext. Fünf Kennzahlen füllten damit einen Bildschirm, und wer zehn hatte, scrollte durch
+Abschnitte statt einen Überblick zu haben. Dazu kam, dass Statamic im Control Panel gar kein
+Karten-Raster für Zahlen kennt: es kennt Widgets auf dem Dashboard und Tabellen überall sonst.
+
+Jetzt ist es eine Zeile je Kennzahl in `Listing`, der Tabelle, die auch die Einträge-Ansicht
+zeichnet: Kennzahl, Quelle, Wert, Veränderung, Verlauf. Sortiert öffnet sie nach Quelle, damit
+die Gruppierung nach Addon erhalten bleibt, die vorher aus je einem Panel kam. Der Erklärtext
+steht auf der Detailseite, die es schon gab und die derselbe Klick öffnet wie vorher die Karte,
+Zeitraum inklusive.
+
+Der Leerzustand für „kein Addon meldet eine Zahl" ist unverändert.
+
+`MetricReader::overview()` liefert dafür je Kennzahl zusätzlich die Reihe (`series`) — die
+Verlaufsspalte braucht sie, und die Detailseite hat dieselbe Frage schon vorher gestellt. Das
+kostet eine Abfrage je Kennzahl auf diesem Bildschirm.
+
+### Neu: die zwei Einstellungen stehen im Control Panel
+
+`default_period` und `currency` waren nur über `config/statamic-insights.php` erreichbar. Beide
+stehen jetzt unter *Addon-Einstellungen* (`/cp/brand-settings`), je Marke, über die geteilte
+Schicht aus `goldnead/statamic-brand-context` — kein eigener Controller, keine eigene Seite,
+keine eigene Tabelle. Was dort nicht geändert wird, folgt weiter der Config-Datei.
+
+Beide Werte werden zur Anfragezeit in einem Controller gelesen; ein Schlüssel, der beim Booten
+gelesen wird, gehört nicht auf diese Seite, weil die Überschreibungen erst danach greifen.
+
+Neues Recht: `manage insights settings`. Bestehende Rechte sind unverändert.
+
+`goldnead/statamic-brand-context` ^1.12 ist damit eine echte Abhängigkeit dieses Addons.
+
 ## 1.2.2 — 2026-09-05
 
 ### Fixed: a split with tied figures came back in whatever order the driver felt like

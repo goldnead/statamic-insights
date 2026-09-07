@@ -125,6 +125,11 @@ class MetricReader
     /**
      * Every available metric, prepared, grouped under its own heading.
      *
+     * Carries the series as well, which `read()` alone does not: since the
+     * overview is a table with a trend column, the shape of the period is part
+     * of the row. It costs one more question per metric on this screen — the
+     * detail page asked the same one and got it for a single metric.
+     *
      * @return array<int, array{group: string, metrics: array<int, array<string, mixed>>}>
      */
     public function overview(MetricQuery $query): array
@@ -136,6 +141,7 @@ class MetricReader
 
             foreach ($metriken as $metrik) {
                 if ($zeile = $this->read($metrik, $query)) {
+                    $zeile['series'] = $this->series($metrik, $query);
                     $vorbereitet[] = $zeile;
                 }
             }
