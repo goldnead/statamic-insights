@@ -4,38 +4,37 @@ All notable changes to this addon are documented here.
 
 ## 1.3.0 — 2026-09-07
 
-### Geändert: die Kennzahlen sind eine Tabelle, kein Karten-Raster
+### Changed: the metrics are a table, not a card grid
 
-Jede Kennzahl war eine Karte mit Überschrift, Zahl, Veränderung und zwei bis drei Zeilen
-Erklärtext. Fünf Kennzahlen füllten damit einen Bildschirm, und wer zehn hatte, scrollte durch
-Abschnitte statt einen Überblick zu haben. Dazu kam, dass Statamic im Control Panel gar kein
-Karten-Raster für Zahlen kennt: es kennt Widgets auf dem Dashboard und Tabellen überall sonst.
+Every metric was a card with a heading, a figure, the change and two or three lines of
+explanation. Five metrics filled a screen that way, and anyone with ten scrolled through
+sections instead of having an overview. On top of that, the Statamic Control Panel has no card
+grid for figures at all: it has widgets on the dashboard and tables everywhere else.
 
-Jetzt ist es eine Zeile je Kennzahl in `Listing`, der Tabelle, die auch die Einträge-Ansicht
-zeichnet: Kennzahl, Quelle, Wert, Veränderung, Verlauf. Sortiert öffnet sie nach Quelle, damit
-die Gruppierung nach Addon erhalten bleibt, die vorher aus je einem Panel kam. Der Erklärtext
-steht auf der Detailseite, die es schon gab und die derselbe Klick öffnet wie vorher die Karte,
-Zeitraum inklusive.
+It is now one row per metric in `Listing`, the table that also draws the entries view: metric,
+source, value, change, series. It opens sorted by source, so the grouping by addon survives that
+previously came from one panel each. The explanation sits on the detail page, which already
+existed and which the same click opens as the card did before, period included.
 
-Der Leerzustand für „kein Addon meldet eine Zahl" ist unverändert.
+The empty state for "no addon reports a figure" is unchanged.
 
-`MetricReader::overview()` liefert dafür je Kennzahl zusätzlich die Reihe (`series`) — die
-Verlaufsspalte braucht sie, und die Detailseite hat dieselbe Frage schon vorher gestellt. Das
-kostet eine Abfrage je Kennzahl auf diesem Bildschirm.
+`MetricReader::overview()` therefore returns the series (`series`) per metric as well — the
+series column needs it, and the detail page had asked the same question before anyway. That
+costs one query per metric on this screen.
 
-### Neu: die zwei Einstellungen stehen im Control Panel
+### Added: the two settings are in the Control Panel
 
-`default_period` und `currency` waren nur über `config/statamic-insights.php` erreichbar. Beide
-stehen jetzt unter *Addon-Einstellungen* (`/cp/brand-settings`), je Marke, über die geteilte
-Schicht aus `goldnead/statamic-brand-context` — kein eigener Controller, keine eigene Seite,
-keine eigene Tabelle. Was dort nicht geändert wird, folgt weiter der Config-Datei.
+`default_period` and `currency` were reachable only through `config/statamic-insights.php`. Both
+now sit under *Addon settings* (`/cp/brand-settings`), per brand, through the shared layer from
+`goldnead/statamic-brand-context` — no controller of its own, no page of its own, no table of
+its own. Whatever is not changed there keeps following the config file.
 
-Beide Werte werden zur Anfragezeit in einem Controller gelesen; ein Schlüssel, der beim Booten
-gelesen wird, gehört nicht auf diese Seite, weil die Überschreibungen erst danach greifen.
+Both values are read at request time in a controller; a key that is read at boot does not belong
+on this page, because the overrides only take effect afterwards.
 
-Neues Recht: `manage insights settings`. Bestehende Rechte sind unverändert.
+New permission: `manage insights settings`. Existing permissions are unchanged.
 
-`goldnead/statamic-brand-context` ^1.12 ist damit eine echte Abhängigkeit dieses Addons.
+`goldnead/statamic-brand-context` ^1.12 is therefore a real dependency of this addon.
 
 ## 1.2.2 — 2026-09-05
 
@@ -113,14 +112,14 @@ Nothing in the public contract layer changed: `Metric`, `HasBreakdowns`,
 
 ## 1.1.1 — 2026-08-29
 
-Nur Dokumentation, kein Codeunterschied zu 1.1.0. Zwei Dinge, die im Paket
-ausgeliefert werden und in 1.1.0 noch nicht drin waren: der Hinweis oben, dass
-nach dem Wechsel einmal `php artisan cache:clear` laufen muss, und eine Zusage
-in `docs/reading-the-numbers.md`, die das Addon nicht halten kann und deshalb
-zurückgenommen wurde.
+Documentation only, no code difference to 1.1.0. Two things that ship in the
+package and were not yet in 1.1.0: the note at the top that
+`php artisan cache:clear` has to run once after the upgrade, and a promise in
+`docs/reading-the-numbers.md` that the addon cannot keep and that was therefore
+withdrawn.
 
-Eigene Patch-Version, weil 1.1.0 zu diesem Zeitpunkt bereits veröffentlicht war.
-Ein veröffentlichter Tag wird nicht verschoben.
+A patch version of its own, because 1.1.0 had already been published at that
+point. A published tag is not moved.
 
 ## 1.1.0 — 2026-08-29
 
