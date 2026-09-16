@@ -49,6 +49,12 @@ abstract class WebsiteTestCase extends TestCase
         ]);
     }
 
+    /** A service that answers, but not with an answer. */
+    protected function fakeRubbish(int $status = 200, string $body = '<html>Please sign in</html>'): void
+    {
+        Http::fake(['*' => Http::response($body, $status, ['Content-Type' => 'text/html'])]);
+    }
+
     /**
      * One bucket row in the shape the service sends it.
      *

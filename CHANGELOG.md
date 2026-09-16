@@ -35,6 +35,13 @@ dropped unless `time_zone` travels with it, and the bucketed endpoint answers an
 window with rows that have no timestamp. The rate figures answer `null` rather than `0` in a
 window with no sessions, following the house rule the metric contract already sets.
 
+The same rule twice more, because a figure read over a network has two extra ways of turning
+into a flattering nought. A figure the service did not send at all answers `null` rather than
+`0` — `0,0 %` beside twenty sessions is the most flattering wrong answer there is. And an answer
+of `200` carrying something that is not an answer — a login page from an access proxy, say —
+raises rather than decoding to six zeroes: "nobody asked successfully" and "nobody visited" have
+the same shape on a screen and only one of them is a measurement.
+
 ### Added: a report may say how it wants to be sorted
 
 New optional `HasDefaultSort`, the sibling of `HasBreakdowns` for tables. The listing sorts

@@ -20,9 +20,14 @@ use Goldnead\BrandContext\Contracts\ProvidesSettings;
  * and RevenueController, `currency` in RevenueController::currencyFor — five
  * call sites, all inside a controller action.
  *
- * `config/statamic-insights.php` holds exactly these two keys, so nothing of
- * this addon's configuration is left out of the screen and there is nothing to
- * point at the config file for.
+ * The rest of `config/statamic-insights.php` — the `website` block — is
+ * deliberately not here, and the reason is the same rule read the other way
+ * round. One of its keys is a credential, which does not belong on a screen at
+ * all. The other two decide whether the website group is registered, and that
+ * is settled in `bootAddon()`, before `SettingsManager::apply()` has run: a
+ * site id typed in here would take effect on the next boot rather than on the
+ * next request, which is a switch that looks like it works. Environment only,
+ * and the config file says so.
  */
 class Settings implements ProvidesSettings
 {

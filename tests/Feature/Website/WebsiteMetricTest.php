@@ -81,6 +81,61 @@ class WebsiteMetricTest extends WebsiteTestCase
     }
 
     /**
+     * The same rule as `value()`, in the place it was broken first: a bucket
+     * with no sessions has no bounce rate, and the reader keeps a null while
+     * it turns a missing bucket into a zero.
+     */
+    #[Test]
+    public function a_bucket_with_no_sessions_has_no_rate(): void
+    {
+        $this->fakeService(buckets: [
+            $this->bucket('2026-09-01 00:00:00'),
+            $this->bucket('2026-09-02 00:00:00', users: 5, sessions: 4, pageviews: 12, bounce: 25.0),
+        ]);
+
+        $series = $this->series('website.bounce_rate', '7d');
+
+        $this->assertNull($series['2026-09-01']);
+        $this->assertSame(25.0, $series['2026-09-02']);
+    }
+
+    /**
+     * The trim belongs to the open-ended case alone. Dropped for a bounded
+     * period, an empty first day would be filled back in with a zero by the
+     * reader — and the chart would then answer the same state two ways: 0 %
+     * at the edge, no bar in the middle.
+     */
+    #[Test]
+    public function a_bounded_period_keeps_its_empty_first_days(): void
+    {
+        $this->fakeService(buckets: [
+            $this->bucket('2026-09-01 00:00:00'),
+            $this->bucket('2026-09-02 00:00:00'),
+            $this->bucket('2026-09-03 00:00:00', users: 5, sessions: 4, pageviews: 12),
+        ]);
+
+        $this->assertSame(
+            ['2026-09-01', '2026-09-02', '2026-09-03'],
+            array_keys($this->series('website.visitors', '7d')),
+        );
+    }
+
+    /**
+     * A figure the service simply did not send is not a figure of nought.
+     * `bounce_rate` missing beside twenty sessions would otherwise print
+     * "0,0 %", which the guard on the derived figures cannot catch — there is
+     * a denominator, so the question does apply.
+     */
+    #[Test]
+    public function a_figure_the_service_left_out_is_not_a_nought(): void
+    {
+        $this->fakeService(totals: ['users' => 12, 'sessions' => 20, 'bounce_rate' => null]);
+
+        $this->assertNull($this->value('website.bounce_rate'));
+        $this->assertSame(12, $this->value('website.visitors'));
+    }
+
+    /**
      * The window contract this service actually honours, and the reason it is
      * written down: `?past=7d` is accepted and ignored, and an explicit range
      * is silently dropped unless `time_zone` travels with it. Both failures
@@ -158,6 +213,16 @@ class WebsiteMetricTest extends WebsiteTestCase
         }
 
         Http::assertSentCount(1);
+    }
+
+    /** @return array<string, int|float|null> */
+    protected function series(string $handle, string $preset = '30d'): array
+    {
+        $period = Period::fromPreset($preset);
+
+        return app(MetricRegistry::class)
+            ->find($handle)
+            ->series(new MetricQuery($period, MetricQuery::bucketFor($period)));
     }
 
     protected function value(string $handle, string $preset = '30d'): int|float|null

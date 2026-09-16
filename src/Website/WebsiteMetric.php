@@ -92,7 +92,7 @@ class WebsiteMetric implements Metric
     /**
      * One figure out of one row, with the null rule applied.
      *
-     * @param  array<string, float|int>  $row
+     * @param  array<string, float|int|null>  $row
      */
     protected function read(array $row): int|float|null
     {

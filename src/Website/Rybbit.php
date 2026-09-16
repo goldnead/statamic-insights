@@ -8,6 +8,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 /**
  * What the analytics service knows about the site in front of it.
@@ -61,36 +62,53 @@ class Rybbit
      * The totals for the window: users, sessions, pageviews, bounce_rate,
      * pages_per_session, session_duration.
      *
-     * @return array<string, float|int>
+     * @return array<string, float|int|null>
      */
     public function overview(MetricQuery $query): array
     {
-        $payload = $this->get('overview', $this->window($query->period));
+        $data = $this->get('overview', $this->window($query->period))['data'];
 
-        return $this->figures($payload['data'] ?? []);
+        if (! is_array($data)) {
+            throw new RuntimeException('insights: [overview] answered with something that is not a set of figures.');
+        }
+
+        return $this->figures($data);
     }
 
     /**
      * The same totals per bucket, keyed `Y-m-d` or `Y-m` after `$query->bucket`.
      *
-     * Leading empty buckets are dropped rather than drawn: for an open-ended
-     * period they are the months before the site existed, and a chart that
-     * opens with two years of floor is a chart nobody reads to the end.
+     * **The leading empty buckets are dropped only for an open-ended period**,
+     * where they are the months between {@see FLOOR} and the day the site
+     * started — a chart that opens with five years of floor is a chart nobody
+     * reads to the end.
      *
-     * @return array<string, array<string, float|int>>
+     * For a bounded period they stay, and that is not tidiness. A dropped
+     * bucket is filled back in with a zero by the reader, because "not
+     * reported" means "nothing happened". For a rate that is the wrong answer:
+     * an empty day at the start of the window would draw a bounce rate of 0 %
+     * while an equally empty day in the middle draws no bar at all — the same
+     * state answered two different ways in one chart.
+     *
+     * @return array<string, array<string, float|int|null>>
      */
     public function series(MetricQuery $query): array
     {
         $monthly = $query->bucket === MetricQuery::BUCKET_MONTH;
+        $floored = $query->period->from === null || $query->period->to === null;
 
-        $payload = $this->get('overview-bucketed', [
+        $data = $this->get('overview-bucketed', [
             'bucket' => $monthly ? 'month' : 'day',
-        ] + $this->window($query->period, floor: true));
+        ] + $this->window($query->period, floor: true))['data'];
+
+        if (! is_array($data)) {
+            throw new RuntimeException('insights: [overview-bucketed] answered with something that is not a series.');
+        }
 
         $rows = [];
 
-        foreach ($payload['data'] ?? [] as $row) {
-            $time = (string) ($row['time'] ?? '');
+        foreach ($data as $row) {
+            $time = is_array($row) ? (string) ($row['time'] ?? '') : '';
 
             if ($time === '') {
                 continue;
@@ -101,8 +119,12 @@ class Rybbit
 
         ksort($rows);
 
+        if (! $floored) {
+            return $rows;
+        }
+
         foreach ($rows as $bucket => $figures) {
-            if ($figures['pageviews'] > 0 || $figures['users'] > 0 || $figures['sessions'] > 0) {
+            if ((int) $figures['pageviews'] > 0 || (int) $figures['users'] > 0 || (int) $figures['sessions'] > 0) {
                 break;
             }
 
@@ -120,15 +142,17 @@ class Rybbit
      */
     public function top(MetricQuery $query, string $parameter, int $limit = 20): array
     {
-        $payload = $this->get('metric', [
-            'parameter' => $parameter,
-            'limit' => $limit,
-        ] + $this->window($query->period));
-
         // Two levels of `data`, and that is the service's shape rather than a
         // typo: the outer one is the envelope every route has, the inner one
         // sits beside `totalCount`.
-        $rows = $payload['data']['data'] ?? [];
+        $rows = $this->get('metric', [
+            'parameter' => $parameter,
+            'limit' => $limit,
+        ] + $this->window($query->period))['data']['data'] ?? null;
+
+        if (! is_array($rows)) {
+            throw new RuntimeException("insights: [metric/{$parameter}] answered with something that is not a list.");
+        }
 
         return array_values(array_map(fn (array $row): array => [
             'value' => (string) ($row['value'] ?? ''),
@@ -171,7 +195,22 @@ class Rybbit
      */
     protected function fetch(string $url, array $params): array
     {
-        return $this->request()->get($url, $params)->throw()->json() ?? [];
+        $answer = $this->request()->get($url, $params)->throw()->json();
+
+        // `throw()` only catches a status outside 2xx, and that is not the only
+        // way to be handed something that is not an answer. An instance behind
+        // an access proxy returns 200 and a login page; `json()` makes that
+        // null, and without this line the null would become an empty array,
+        // then six zeroes, then "0 visitors" on a screen — a failure wearing
+        // the clothes of a result. Checked before the answer reaches the cache,
+        // so a minute of nonsense is not kept for the whole cache lifetime.
+        if (! is_array($answer) || ! array_key_exists('data', $answer)) {
+            throw new RuntimeException(
+                'insights: the analytics service answered with 200 and no data. Right address, wrong thing at it?'
+            );
+        }
+
+        return $answer;
     }
 
     protected function request(): PendingRequest
@@ -221,18 +260,34 @@ class Rybbit
      * `9.946428571428571` seconds — and a chart of those is a chart of noise.
      * Rounded here so that every caller rounds the same way.
      *
+     * **The scales, read off the live instance on 16.09.2026** and written down
+     * because nothing in the answer declares them, and each one is wrong by a
+     * factor that still looks plausible: `bounce_rate` is already 0–100, not a
+     * share of one (`45` for 45 %); `session_duration` is whole seconds, not
+     * milliseconds (`12.75` for a visit of thirteen seconds).
+     *
+     * **A key that is not there answers null, not zero.** Only the ones that
+     * arrived were measured, and the alternative is the flattering lie: a
+     * service that stops sending `bounce_rate` would otherwise show 0,0 %
+     * beside twenty sessions, where the guard in {@see WebsiteMetric} cannot
+     * catch it because there is a denominator.
+     *
      * @param  array<string, mixed>  $row
-     * @return array<string, float|int>
+     * @return array<string, float|int|null>
      */
     protected function figures(array $row): array
     {
+        $number = fn (string $key, callable $shape) => isset($row[$key]) && is_numeric($row[$key])
+            ? $shape($row[$key])
+            : null;
+
         return [
-            'users' => (int) ($row['users'] ?? 0),
-            'sessions' => (int) ($row['sessions'] ?? 0),
-            'pageviews' => (int) ($row['pageviews'] ?? 0),
-            'bounce_rate' => round((float) ($row['bounce_rate'] ?? 0), 1),
-            'pages_per_session' => round((float) ($row['pages_per_session'] ?? 0), 2),
-            'session_duration' => (int) round((float) ($row['session_duration'] ?? 0)),
+            'users' => $number('users', fn ($v) => (int) $v),
+            'sessions' => $number('sessions', fn ($v) => (int) $v),
+            'pageviews' => $number('pageviews', fn ($v) => (int) $v),
+            'bounce_rate' => $number('bounce_rate', fn ($v) => round((float) $v, 1)),
+            'pages_per_session' => $number('pages_per_session', fn ($v) => round((float) $v, 2)),
+            'session_duration' => $number('session_duration', fn ($v) => (int) round((float) $v)),
         ];
     }
 
