@@ -2,6 +2,7 @@
 
 namespace Goldnead\StatamicInsights\Reports;
 
+use Goldnead\StatamicInsights\Support\Countries;
 use Goldnead\StatamicInsights\Support\MetricQuery;
 use Goldnead\StatamicInsights\Support\Neighbours;
 use Goldnead\StatamicInsights\Support\TableReport;
@@ -99,12 +100,6 @@ class PaymentsByCountry extends TableReport
 
     protected function countryName(string $code): string
     {
-        if (! class_exists(\Locale::class)) {
-            return $code;
-        }
-
-        $name = \Locale::getDisplayRegion('-'.$code, app()->getLocale());
-
-        return ($name === '' || $name === false) ? $code : $name;
+        return Countries::name($code);
     }
 }

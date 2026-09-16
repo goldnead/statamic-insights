@@ -2,6 +2,53 @@
 
 All notable changes to this addon are documented here.
 
+## 1.4.0 — 2026-09-16
+
+### Added: the website's own traffic
+
+Until now every figure came from a sibling addon, and the seam for measuring something directly
+was an empty method with a note saying the day it filled would be the day this addon needed
+another addon's table again. That is not what happened. The website's readers are the one thing
+no addon in the family records and none ever will, and a site's traffic belongs beside its
+revenue rather than in a second browser tab.
+
+Six figures — visitors, sessions, pageviews, bounce rate, pages per session, session length —
+and five tables: most read pages, referrers, countries, devices, browsers. They come from a
+self-hosted [Rybbit](https://rybbit.io) instance, read through one client class that is the only
+place in this addon talking to a network.
+
+Configuration is environment only, and nothing appears anywhere until it is set:
+
+```dotenv
+STATAMIC_INSIGHTS_WEBSITE_URL=https://analytics.example
+STATAMIC_INSIGHTS_WEBSITE_KEY=rb_…
+STATAMIC_INSIGHTS_WEBSITE_SITE=7
+```
+
+An unconfigured installation registers no website metric and no website table at all. A heading
+over nothing would promise a source that is not there, and the "not installed, run `composer
+require`" sentence the screens show for a missing sibling is not true of a web service.
+
+Three things the API does that cost an afternoon each are written into the client rather than
+left for the next reader: `?past=7d` is accepted and ignored, an explicit date range is silently
+dropped unless `time_zone` travels with it, and the bucketed endpoint answers an unbounded
+window with rows that have no timestamp. The rate figures answer `null` rather than `0` in a
+window with no sessions, following the house rule the metric contract already sets.
+
+### Added: a report may say how it wants to be sorted
+
+New optional `HasDefaultSort`, the sibling of `HasBreakdowns` for tables. The listing sorts
+client-side and, left alone, sorts by the first column — right for revenue by month, wrong for
+the twenty busiest pages, which read alphabetically as a complete site with twenty entries. The
+rows a ranking cut are invisible as well as absent.
+
+`Report` itself is unchanged, so nothing outside this package has to do anything.
+
+### Changed
+
+- `PaymentsByCountry` and the new countries table spell out a country code through the same
+  `Support\Countries`, instead of two copies that drift.
+
 ## 1.3.0 — 2026-09-07
 
 ### Changed: the metrics are a table, not a card grid

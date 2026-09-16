@@ -15,6 +15,11 @@ use Goldnead\StatamicInsights\Support\MetricRegistry;
 use Goldnead\StatamicInsights\Support\Neighbours;
 use Goldnead\StatamicInsights\Support\ReportRegistry;
 use Goldnead\StatamicInsights\Support\Settings;
+use Goldnead\StatamicInsights\Support\Unit;
+use Goldnead\StatamicInsights\Website\CountriesReport;
+use Goldnead\StatamicInsights\Website\Rybbit;
+use Goldnead\StatamicInsights\Website\TopMetricReport;
+use Goldnead\StatamicInsights\Website\WebsiteMetric;
 use Statamic\Facades\CP\Nav;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
@@ -58,6 +63,11 @@ class ServiceProvider extends AddonServiceProvider
         $this->app->singleton(ReportRegistry::class);
         $this->app->singleton(InsightsManager::class);
 
+        // A singleton so that six website metrics and five website tables on
+        // one screen share the memo inside it. Resolved per metric rather than
+        // injected, because the metrics are constructed while booting.
+        $this->app->singleton(Rybbit::class);
+
         $langPath = __DIR__.'/../resources/lang';
 
         // Two layers, and both are needed: `addNamespace` serves the PHP side
@@ -99,6 +109,7 @@ class ServiceProvider extends AddonServiceProvider
         $this->registerContactPanel();
         $this->registerOwnMetrics();
         $this->registerOwnReports();
+        $this->registerWebsiteReports();
 
         $this->publishes([
             __DIR__.'/../config/statamic-insights.php' => config_path('statamic-insights.php'),
@@ -139,16 +150,82 @@ class ServiceProvider extends AddonServiceProvider
     }
 
     /**
-     * This addon measures nothing of its own.
+     * The website's own traffic — the one thing no sibling addon owns.
      *
-     * The method exists as the seam and stays empty on purpose: every number
-     * comes from the addon that owns the data, and the day Insights starts
-     * counting something itself is the day it needs another addon's table
-     * again. If that day comes, it happens here and visibly.
+     * The seam used to be empty, with a note that the day Insights measured
+     * something itself would be the day it needed another addon's table again.
+     * That is not what happened. These six figures come from outside the
+     * installation altogether: an analytics service that knows what the site's
+     * readers did, which no addon in the family records and none ever will.
+     * A site's traffic belongs beside its revenue rather than in a second tab,
+     * so it is here.
+     *
+     * Registered only when the service is configured. An unconfigured install
+     * shows no Website heading at all, rather than a heading over nothing —
+     * the same judgement `available()` makes for a metric with no table, made
+     * one level earlier because the reason is a setting rather than a schema.
      */
     protected function registerOwnMetrics(): void
     {
-        //
+        if (! Rybbit::configured()) {
+            return;
+        }
+
+        $registry = $this->app->make(MetricRegistry::class);
+
+        foreach (self::WEBSITE_METRICS as $name => [$figure, $unit]) {
+            $registry->register(new WebsiteMetric($name, $figure, $unit));
+        }
+    }
+
+    /**
+     * The figures the website group offers: handle suffix => [service key, unit].
+     *
+     * `visitors` and the service's `users` are the same number under two
+     * names; the handle follows what a reader calls it and the key follows
+     * what the service calls it.
+     *
+     * @var array<string, array{0: string, 1: string}>
+     */
+    public const WEBSITE_METRICS = [
+        'visitors' => ['users', Unit::COUNT],
+        'sessions' => ['sessions', Unit::COUNT],
+        'pageviews' => ['pageviews', Unit::COUNT],
+        'bounce_rate' => ['bounce_rate', Unit::PERCENT],
+        'pages_per_session' => ['pages_per_session', Unit::COUNT],
+        'session_duration' => ['session_duration', Unit::DURATION],
+    ];
+
+    /**
+     * The five traffic tables, on the same condition as the metrics above.
+     *
+     * Handle suffix => the dimension the analytics service knows it by, and
+     * the key of the first column.
+     *
+     * @var array<string, array{0: string, 1: string}>
+     */
+    public const WEBSITE_REPORTS = [
+        'top_pages' => ['pathname', 'path'],
+        'referrers' => ['referrer', 'referrer'],
+        'devices' => ['device_type', 'device'],
+        'browsers' => ['browser', 'browser'],
+    ];
+
+    protected function registerWebsiteReports(): void
+    {
+        if (! Rybbit::configured()) {
+            return;
+        }
+
+        $registry = $this->app->make(ReportRegistry::class);
+
+        foreach (self::WEBSITE_REPORTS as $name => [$parameter, $column]) {
+            $registry->register(new TopMetricReport($name, $parameter, $column));
+        }
+
+        // Its own class only because the values are codes and a table of
+        // codes is a table nobody reads.
+        $registry->register(new CountriesReport);
     }
 
     /**

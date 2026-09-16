@@ -2,6 +2,7 @@
 
 namespace Goldnead\StatamicInsights\Support;
 
+use Goldnead\StatamicInsights\Contracts\HasDefaultSort;
 use Goldnead\StatamicInsights\Contracts\Report;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -36,6 +37,43 @@ class ReportReader
             'available' => $available,
             'requires' => $report->requires(),
             'usesPeriod' => $report->usesPeriod(),
+            'sort' => $this->sort($report),
+        ];
+    }
+
+    /**
+     * The order the report itself asks for, or null to let the screen decide.
+     *
+     * Only a column the report actually has: a handle that no longer matches a
+     * column would leave the listing sorting by nothing, which draws an empty
+     * table over rows that are there.
+     *
+     * @return array{column: string, direction: string}|null
+     */
+    protected function sort(Report $report): ?array
+    {
+        if (! $report instanceof HasDefaultSort) {
+            return null;
+        }
+
+        try {
+            $sort = $report->defaultSort();
+            $columns = array_column($report->columns(), 'key');
+        } catch (Throwable $e) {
+            Log::warning("insights: the report [{$report->handle()}] failed while saying how it wants to be sorted.", [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if (! in_array($sort['column'] ?? null, $columns, true)) {
+            return null;
+        }
+
+        return [
+            'column' => $sort['column'],
+            'direction' => ($sort['direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc',
         ];
     }
 

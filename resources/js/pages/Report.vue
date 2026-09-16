@@ -8,7 +8,7 @@ import {
 import { formatCell, isNumeric } from '../support/cells.js';
 
 const props = defineProps([
-    // { handle, label, description, group, available, requires, usesPeriod, columns, rows, failed }
+    // { handle, label, description, group, available, requires, usesPeriod, sort, columns, rows, failed }
     'report',
     'period',
     'periodOptions',
@@ -35,6 +35,13 @@ const listingColumns = computed(() => props.report.columns.map((column) => ({
     sortable: true,
     defaultVisibility: true,
 })));
+
+// Left to itself the listing sorts by the first column, which is right for a
+// table that is a list and wrong for one that is already a ranking: the twenty
+// busiest pages in alphabetical order read as the whole site. A report that
+// has an opinion says so; the rest keep core's behaviour.
+const sortColumn = computed(() => props.report.sort?.column ?? null);
+const sortDirection = computed(() => props.report.sort?.direction ?? null);
 
 // The empty sentence depends on whether a period was asked at all: "nothing in
 // this period" beside a snapshot would name a filter the screen does not have.
@@ -97,6 +104,8 @@ const emptyText = computed(() => (props.report.usesPeriod
             <Listing
                 :items="items"
                 :columns="listingColumns"
+                :sort-column="sortColumn"
+                :sort-direction="sortDirection"
                 :allow-search="false"
                 :allow-presets="false"
                 :allow-customizing-columns="false"

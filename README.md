@@ -38,6 +38,42 @@ STATAMIC_INSIGHTS_CURRENCY=EUR   # which currency the screen opens on
 STATAMIC_INSIGHTS_PERIOD=30d     # 7d · 30d · 90d · 12m · ytd · all
 ```
 
+## Website statistics
+
+The one group of figures this addon reads itself, because no sibling owns them:
+what the site's readers did. Six figures — visitors, sessions, pageviews,
+bounce rate, pages per session, session length — and five tables: most read
+pages, referrers, countries, devices, browsers.
+
+The source is a self-hosted [Rybbit](https://rybbit.io) instance. Point the
+addon at it and say which site this installation is:
+
+```dotenv
+STATAMIC_INSIGHTS_WEBSITE_URL=https://analytics.example
+STATAMIC_INSIGHTS_WEBSITE_KEY=rb_…
+STATAMIC_INSIGHTS_WEBSITE_SITE=7
+
+# optional
+STATAMIC_INSIGHTS_WEBSITE_TIMEZONE=Europe/Berlin  # default: app.timezone
+STATAMIC_INSIGHTS_WEBSITE_CACHE=300               # seconds an answer is kept
+STATAMIC_INSIGHTS_WEBSITE_TIMEOUT=8
+STATAMIC_INSIGHTS_WEBSITE_VERIFY=true             # off only for an origin certificate
+```
+
+Environment, not the settings screen: the key is a credential, and a credential
+does not belong on a screen.
+
+Set nothing and nothing appears — no Website heading, no table saying "not
+installed" about a service nobody installs with Composer. Set it and the
+figures join the Metrics list and the tables join the Reports list, under
+**Website**.
+
+Two things worth knowing before reading the numbers. Visitors are people and do
+not add up across days: somebody returning on three days is one visitor for the
+period and one on each of the three. And a rate over a window with no sessions
+answers with a dash rather than `0 %` — "nothing to measure" and "measured
+nothing" are different statements.
+
 ## Usage
 
 Open **Tools → Insights**. The screen answers four questions at a glance and two
