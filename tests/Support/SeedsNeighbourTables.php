@@ -23,6 +23,12 @@ trait SeedsNeighbourTables
 {
     protected function createPaymentsTables(): void
     {
+        // A real MySQL or Postgres (INSIGHTS_TEST_DB_URL) keeps tables between
+        // tests; SQLite in memory never has them.
+        Schema::dropIfExists('subscriptions');
+        Schema::dropIfExists('payment_items');
+        Schema::dropIfExists('payments');
+
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->string('product', 191)->nullable();
@@ -34,6 +40,8 @@ trait SeedsNeighbourTables
             $table->string('country', 2)->nullable();
             $table->unsignedInteger('refunded_cent')->default(0);
             $table->unsignedBigInteger('brand_id')->nullable();
+            $table->unsignedBigInteger('subscription_id')->nullable();
+            $table->json('meta')->nullable();
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
         });
@@ -157,6 +165,72 @@ trait SeedsNeighbourTables
             'revoked_at' => null,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
+        ], $attributes));
+    }
+
+    /**
+     * The agreements table of `statamic-payments`, with the columns the
+     * subscription figures read. Needs {@see createPaymentsTables()} first:
+     * the cycles are ordinary payments carrying a `subscription_id`.
+     */
+    protected function createSubscriptionsTable(): void
+    {
+        Schema::create('subscriptions', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('brand_id')->nullable();
+            $table->string('provider', 32)->default('mollie');
+            $table->string('customer_reference', 191)->default('cst_1');
+            $table->string('product', 191);
+            $table->unsignedInteger('amount_cent');
+            $table->string('currency', 3);
+            $table->string('interval', 32);
+            $table->unsignedSmallInteger('times')->nullable();
+            $table->unsignedSmallInteger('times_charged')->default(0);
+            $table->string('status', 32);
+            $table->timestamp('starts_at')->nullable();
+            $table->timestamp('next_payment_at')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
+            $table->timestamp('ended_at')->nullable();
+            $table->timestamp('dunning_started_at')->nullable();
+            $table->string('email')->nullable();
+            $table->string('name')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /** @param  array<string, mixed>  $attributes */
+    protected function subscription(array $attributes = []): int
+    {
+        $start = $attributes['starts_at'] ?? Carbon::now()->subMonths(2);
+
+        return (int) DB::table('subscriptions')->insertGetId(array_merge([
+            'brand_id' => 1,
+            'customer_reference' => 'cst_'.uniqid(),
+            'product' => 'mitgliedschaft',
+            'amount_cent' => 1900,
+            'currency' => 'EUR',
+            'interval' => '1 month',
+            'times' => null,
+            'times_charged' => 0,
+            'status' => 'active',
+            'starts_at' => $start,
+            'email' => uniqid().'@example.com',
+            'created_at' => $start,
+            'updated_at' => $start,
+        ], $attributes));
+    }
+
+    /**
+     * One paid cycle of an agreement, as `statamic-payments` records it.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    protected function cycle(int $subscriptionId, string $paidAt, int $cent, array $attributes = []): int
+    {
+        return $this->payment(array_merge([
+            'subscription_id' => $subscriptionId,
+            'amount_cent' => $cent,
+            'paid_at' => Carbon::parse($paidAt),
         ], $attributes));
     }
 

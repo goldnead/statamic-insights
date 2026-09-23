@@ -2,6 +2,34 @@
 
 All notable changes to this addon are documented here.
 
+## Unreleased
+
+### Added: subscription figures
+
+A new screen, **Insights → Subscriptions**, and four reports in a new "Subscriptions" group, read
+from the `subscriptions` table of statamic-payments and the cycles charged on it:
+
+- MRR and ARR, running subscriptions, new subscriptions, customer churn and revenue churn per
+  month, the charges due in the next 30 days and a twelve-month forecast, with MRR over time.
+- **MRR movements by month**: start, new, reactivated, expansion, contraction, churned, paused,
+  net new MRR, end. Summed month by month, so a price change of somebody who joined inside a long
+  window is still an expansion.
+- **Retention by start month**: the share of each cohort still there after 1, 2, 3, 6 and 12
+  months.
+- **Charges due in the next 30 days** and **Revenue forecast from running subscriptions**.
+
+The rules: a quarterly cycle counts a third, a yearly one a twelfth. Payment plans and trials are
+not MRR; plans are their own line in charges and forecast. Currencies are never added — every
+figure is per currency, with a switch on the screen, because the suite has no exchange rate.
+A paused subscription, one suspended after a failed payment, and one in a status this addon does
+not know are *held*: their own movement, counted as retained, never churn; an unknown status is
+named on screen. The price at a moment is what the latest renewal charged, not the checkout,
+which may carry a bump or a setup fee; a charge marked `meta.proration` is ignored.
+
+The database only selects; every date is compared in PHP, so the figures are the same on SQLite,
+MySQL and Postgres — the new tests were run against all three (`INSIGHTS_TEST_DB_URL`).
+No contract changed; the reports use the existing `Report` contract. No migration, no new config key.
+
 ## 1.4.0 — 2026-09-16
 
 ### Added: the website's own traffic

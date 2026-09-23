@@ -31,7 +31,7 @@ function detailUrl(handle) {
             <EmptyStateItem
                 icon="chart-monitoring-indicator"
                 :heading="__('Nothing to show')"
-                :description="__('Reports are tables over what the family records. The six this addon ships appear as soon as it boots; a sibling can register more.')"
+                :description="__('Reports are tables over what the family records. The ones this addon ships appear as soon as it boots; a sibling can register more.')"
             />
         </EmptyStateMenu>
 

@@ -40,9 +40,9 @@ class ReportRouteTest extends TestCase
         return tap(User::make()->email('darfnicht@example.com')->assignRole($rolle))->save();
     }
 
-    /** The six shipped reports are registered by the provider itself. */
+    /** The shipped reports are registered by the provider itself. */
     #[Test]
-    public function the_six_own_reports_are_registered_at_boot(): void
+    public function the_own_reports_are_registered_at_boot(): void
     {
         $this->assertEqualsCanonicalizing(
             array_values(ServiceProvider::OWN_REPORTS),
@@ -59,7 +59,8 @@ class ReportRouteTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('insights::Reports')
-                ->has('groups', 3)
+                // Payments, subscriptions, offers, entitlements.
+                ->has('groups', 4)
                 ->where('groups.0.reports.0.available', false)
                 ->where('groups.0.reports.0.requires', fn ($paket) => str_starts_with((string) $paket, 'goldnead/statamic-'))
             );

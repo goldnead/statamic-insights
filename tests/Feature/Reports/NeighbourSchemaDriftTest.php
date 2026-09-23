@@ -33,6 +33,15 @@ class NeighbourSchemaDriftTest extends ReportsTestCase
     }
 
     #[Test]
+    public function the_seeded_subscriptions_table_matches_the_payments_migrations(): void
+    {
+        $this->createPaymentsTables();
+        $this->createSubscriptionsTable();
+
+        $this->assertColumnsAreDeclared('statamic-payments', 'subscriptions');
+    }
+
+    #[Test]
     public function the_seeded_offers_table_matches_the_offers_migrations(): void
     {
         $this->createOffersTable();

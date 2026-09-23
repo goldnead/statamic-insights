@@ -7,9 +7,13 @@ use Goldnead\StatamicInsights\Contracts\Report;
 use Goldnead\StatamicInsights\Integrations\ContactRevenuePanel;
 use Goldnead\StatamicInsights\Reports\AccessByProduct;
 use Goldnead\StatamicInsights\Reports\CartAbandonment;
+use Goldnead\StatamicInsights\Reports\MrrMovements;
 use Goldnead\StatamicInsights\Reports\PaymentsByCountry;
 use Goldnead\StatamicInsights\Reports\RevenueByMonth;
 use Goldnead\StatamicInsights\Reports\RevenueByProduct;
+use Goldnead\StatamicInsights\Reports\SubscriptionCohorts;
+use Goldnead\StatamicInsights\Reports\SubscriptionForecast;
+use Goldnead\StatamicInsights\Reports\UpcomingCharges;
 use Goldnead\StatamicInsights\Reports\UpsellPerformance;
 use Goldnead\StatamicInsights\Support\MetricRegistry;
 use Goldnead\StatamicInsights\Support\Neighbours;
@@ -256,6 +260,12 @@ class ServiceProvider extends AddonServiceProvider
         CartAbandonment::class => 'payments.abandonment',
         UpsellPerformance::class => 'offers.upsells',
         AccessByProduct::class => 'entitlements.access_by_product',
+        // Subscriptions, read from `subscriptions` of statamic-payments. Their
+        // own group, because four tables about one question read best together.
+        MrrMovements::class => 'payments.mrr_movements',
+        SubscriptionCohorts::class => 'payments.subscription_cohorts',
+        UpcomingCharges::class => 'payments.upcoming_charges',
+        SubscriptionForecast::class => 'payments.subscription_forecast',
     ];
 
     protected function registerNavigation(): void
@@ -271,6 +281,7 @@ class ServiceProvider extends AddonServiceProvider
                     // opens with a question in mind. The generic list is where
                     // you go when you do not know what you are looking for.
                     $nav->item(__('statamic-insights::nav.revenue'))->route('insights.revenue'),
+                    $nav->item(__('statamic-insights::nav.subscriptions'))->route('insights.subscriptions'),
                     $nav->item(__('statamic-insights::nav.metrics'))->route('insights.metrics'),
                     $nav->item(__('statamic-insights::nav.reports'))->route('insights.reports'),
                 ]);
