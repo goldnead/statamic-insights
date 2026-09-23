@@ -94,4 +94,55 @@ class SubscriptionsScreenTest extends ReportsTestCase
                 ->where('tiles.0.value', 5000)
             );
     }
+
+    #[Test]
+    public function every_tile_explains_itself(): void
+    {
+        $this->createPaymentsTables();
+        $this->createSubscriptionsTable();
+        $this->subscription(['amount_cent' => 1900, 'starts_at' => '2026-07-10 09:00:00']);
+
+        $this->actingAs($this->benutzer())
+            ->get(cp_route('insights.subscriptions'))
+            ->assertInertia(function ($page) {
+                $tiles = $page->toArray()['props']['tiles'];
+
+                $this->assertCount(8, $tiles);
+
+                foreach ($tiles as $tile) {
+                    $this->assertNotEmpty($tile['hint'] ?? null, "the tile [{$tile['handle']}] has no sentence under it");
+                }
+
+                return $page->has('churn.customers_paused');
+            });
+    }
+
+    #[Test]
+    public function a_report_with_currencies_offers_them_and_shows_one(): void
+    {
+        $this->createPaymentsTables();
+        $this->createSubscriptionsTable();
+        $this->subscription(['amount_cent' => 1900, 'starts_at' => '2026-07-10 09:00:00']);
+        $this->subscription(['amount_cent' => 1900, 'starts_at' => '2026-07-10 09:00:00']);
+        $this->subscription(['amount_cent' => 5000, 'currency' => 'CHF', 'starts_at' => '2026-07-10 09:00:00']);
+
+        $wer = $this->benutzer();
+
+        $this->actingAs($wer)
+            ->get(cp_route('insights.reports.show', ['report' => 'payments.mrr_movements', 'period' => '90d']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('insights::Report')
+                ->where('filters.currency', 'EUR')
+                ->has('report.filterOptions.currency', 2)
+                ->where('report.rows.0.currency', 'EUR')
+            );
+
+        $this->actingAs($wer)
+            ->get(cp_route('insights.reports.show', ['report' => 'payments.mrr_movements', 'currency' => 'chf']))
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.currency', 'CHF')
+                ->where('report.rows.0.currency', 'CHF')
+            );
+    }
 }

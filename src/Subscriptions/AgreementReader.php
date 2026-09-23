@@ -157,18 +157,46 @@ class AgreementReader
             stop: $standing === Standing::LIVE ? null : $this->stop($zeile, $standing),
             nextPaymentAt: $this->time($zeile->next_payment_at ?? null),
             prices: $preise,
+            pauses: $this->pauses($zeile),
         );
+    }
+
+    /**
+     * The pauses it came back from, as `statamic-payments` records them on
+     * resuming: `meta.pauses`, a list of `{paused_at, resumed_at}` in ISO 8601.
+     * An entry without both ends, or backwards, is skipped rather than guessed.
+     *
+     * @return array<int, array{0: Carbon, 1: Carbon}>
+     */
+    protected function pauses(object $zeile): array
+    {
+        $meta = $zeile->meta ?? null;
+
+        if (is_string($meta)) {
+            $meta = json_decode($meta, true);
+        }
+
+        $liste = is_array($meta) && is_array($meta['pauses'] ?? null) ? $meta['pauses'] : [];
+        $fenster = [];
+
+        foreach ($liste as $pause) {
+            $von = is_array($pause) ? $this->time($pause['paused_at'] ?? null) : null;
+            $bis = is_array($pause) ? $this->time($pause['resumed_at'] ?? null) : null;
+
+            if ($von !== null && $bis !== null && $bis->gt($von)) {
+                $fenster[] = [$von, $bis];
+            }
+        }
+
+        return $fenster;
     }
 
     protected function stop(object $zeile, string $standing): ?Carbon
     {
-        $spalten = ['ended_at', 'cancelled_at', 'dunning_started_at', 'updated_at'];
-
-        if ($standing === Standing::PAUSED) {
-            array_unshift($spalten, 'paused_at');
-        }
-
-        foreach ($spalten as $spalte) {
+        // `paused_at` first whenever it is set: for a pause, and for an
+        // agreement cancelled during one, which stopped paying when the pause
+        // began, not when the cancellation arrived.
+        foreach (['paused_at', 'ended_at', 'cancelled_at', 'dunning_started_at', 'updated_at'] as $spalte) {
             $wann = $this->time($zeile->{$spalte} ?? null);
 
             if ($wann !== null) {

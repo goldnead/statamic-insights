@@ -38,15 +38,16 @@ class UpcomingCharges extends SubscriptionReport
             $this->column('product', $this->t('col_product'), 'code'),
             $this->column('customer', $this->t('col_customer'), 'text'),
             $this->column('kind_label', $this->t('col_kind'), 'text'),
-            $this->column('currency', $this->t('col_currency'), 'text'),
             $this->column('amount_cent', $this->t('col_amount'), Unit::CURRENCY),
         ];
     }
 
     public function rows(MetricQuery $query): array
     {
+        $this->fresh();
+
         return array_map(fn (array $c) => $c + [
             'kind_label' => $this->t($c['kind'] === 'plan' ? 'kind_plan' : 'kind_subscription'),
-        ], $this->figures()->upcoming(self::DAYS));
+        ], $this->only($this->figures()->upcoming(self::DAYS), $query));
     }
 }

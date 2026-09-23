@@ -68,23 +68,55 @@ class SubscriptionReportsTest extends ReportsTestCase
         $this->subscription(['amount_cent' => 1500, 'starts_at' => '2026-08-10 09:00:00']);
         $this->subscription(['amount_cent' => 2000, 'currency' => 'CHF', 'starts_at' => '2026-08-11 09:00:00']);
 
-        $rows = (new MrrMovements)->rows(new MetricQuery(Period::fromPreset('12m')));
+        $report = new MrrMovements;
 
-        $august = array_values(array_filter($rows, fn ($r) => $r['month'] === '2026-08'));
+        // Offered as a choice, the busiest first, like the subscriptions screen.
+        $this->assertSame(['EUR', 'CHF'], array_column($report->filterOptions()['currency'], 'value'));
 
-        $this->assertCount(2, $august);
-        $eur = $this->row($august, 'currency', 'EUR');
-        $chf = $this->row($august, 'currency', 'CHF');
-        $this->assertSame(1000, $eur['mrr_start']);
-        $this->assertSame(1500, $eur['new']);
-        $this->assertSame(2500, $eur['mrr_end']);
-        $this->assertSame(2000, $chf['new']);
-        $this->assertSame(2000, $chf['mrr_end']);
+        $eur = $report->rows(new MetricQuery(Period::fromPreset('12m'), filters: ['currency' => 'EUR']));
+        $chf = $report->rows(new MetricQuery(Period::fromPreset('12m'), filters: ['currency' => 'CHF']));
+
+        $this->assertSame(['EUR'], array_values(array_unique(array_column($eur, 'currency'))));
+        $this->assertSame(1000, $this->row($eur, 'month', '2026-08')['mrr_start']);
+        $this->assertSame(1500, $this->row($eur, 'month', '2026-08')['new']);
+        $this->assertSame(2500, $this->row($eur, 'month', '2026-08')['mrr_end']);
+        $this->assertSame(2000, $this->row($chf, 'month', '2026-08')['new']);
+
+        // Without a filter the busiest currency, never both.
+        $ohne = $report->rows(new MetricQuery(Period::fromPreset('12m')));
+        $this->assertSame(['EUR'], array_values(array_unique(array_column($ohne, 'currency'))));
+
+        // The currency is a choice above the table, not a column in it.
+        $this->assertNotContains('currency', array_column($report->columns(), 'key'));
 
         // The running month ends now, not at the end of September.
-        $this->assertSame('2026-09', $rows[0]['month']);
+        $this->assertSame('2026-09', $eur[0]['month']);
         // Nothing before the first agreement.
-        $this->assertNull($this->row($rows, 'month', '2026-06'));
+        $this->assertNull($this->row($eur, 'month', '2026-06'));
+    }
+
+    #[Test]
+    public function losses_carry_their_minus_and_the_reactivated_column_appears_only_when_there_is_one(): void
+    {
+        $this->ledger();
+        $this->subscription(['amount_cent' => 1000, 'starts_at' => '2026-05-10 09:00:00']);
+        $this->subscription(['amount_cent' => 700, 'starts_at' => '2026-05-10 09:00:00', 'status' => 'cancelled', 'ended_at' => '2026-08-12 09:00:00']);
+
+        $report = new MrrMovements;
+        $rows = $report->rows(new MetricQuery(Period::fromPreset('12m'), filters: ['currency' => 'EUR']));
+
+        $this->assertSame(-700, $this->row($rows, 'month', '2026-08')['churn']);
+        $this->assertSame(-700, $this->row($rows, 'month', '2026-08')['net']);
+        $this->assertNotContains('reactivation', array_column($report->columns(), 'key'));
+
+        // Somebody who left comes back on a new agreement.
+        $this->subscription(['email' => 'zurueck@x.de', 'amount_cent' => 500, 'starts_at' => '2026-02-01 09:00:00', 'status' => 'cancelled', 'ended_at' => '2026-04-01 09:00:00']);
+        $this->subscription(['email' => 'zurueck@x.de', 'amount_cent' => 500, 'starts_at' => '2026-09-02 09:00:00']);
+
+        $report = new MrrMovements;
+        $report->rows(new MetricQuery(Period::fromPreset('12m'), filters: ['currency' => 'EUR']));
+
+        $this->assertContains('reactivation', array_column($report->columns(), 'key'));
     }
 
     #[Test]

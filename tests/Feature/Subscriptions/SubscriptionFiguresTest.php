@@ -240,6 +240,117 @@ class SubscriptionFiguresTest extends ReportsTestCase
         $this->assertSame(12.5, $churn['revenue_rate']);
     }
 
+    /**
+     * 25 Aug to 5 Sep: seven days of August (31 days long), four of September
+     * (30). Ten paying; one leaves on 28 Aug, nobody in September.
+     *
+     * Each piece is scaled to its month and weighted by its days:
+     *     (10 % × 31 + 0 % × 30) / (7 + 4) = 3.1 / 11 = 28.2 %
+     *
+     * The unweighted mean of the two pieces would say 5 %: seven days that
+     * lost one in ten, counted like four days that lost nobody, and neither
+     * scaled to a month.
+     */
+    #[Test]
+    public function a_short_window_is_scaled_to_a_month_and_its_pieces_weighted_by_days(): void
+    {
+        foreach (range(1, 9) as $i) {
+            $this->subscription(['email' => "k{$i}@x.de", 'amount_cent' => 1000, 'starts_at' => '2026-05-01 09:00:00']);
+        }
+        $this->subscription([
+            'email' => 'weg@x.de', 'amount_cent' => 1000, 'starts_at' => '2026-05-01 09:00:00',
+            'status' => 'cancelled', 'ended_at' => '2026-08-28 09:00:00',
+        ]);
+
+        $churn = $this->figures()->churn(
+            Carbon::parse('2026-08-25 00:00:00'),
+            Carbon::parse('2026-09-05 00:00:00'),
+            'EUR',
+        );
+
+        $this->assertSame(round((0.1 * 31 + 0 * 30) / (7 + 4) * 100, 1), $churn['customer_rate']);
+        $this->assertSame(round((0.1 * 31 + 0 * 30) / (7 + 4) * 100, 1), $churn['revenue_rate']);
+    }
+
+    /**
+     * Paused 10 June, resumed 20 July, running since. `statamic-payments`
+     * clears `paused_at` and `ended_at` on resuming and keeps the window in
+     * `meta.pauses`; the row alone would say it never stopped.
+     */
+    protected function pausedAndBack(): void
+    {
+        $this->subscription([
+            'email' => 'pause@x.de', 'amount_cent' => 1000, 'starts_at' => '2026-03-01 09:00:00',
+            'meta' => json_encode(['pauses' => [
+                ['paused_at' => '2026-06-10T09:00:00+00:00', 'resumed_at' => '2026-07-20T09:00:00+00:00', 'mode' => 'recreate', 'by' => 'portal'],
+            ]]),
+        ]);
+    }
+
+    #[Test]
+    public function a_past_pause_takes_the_subscription_out_of_mrr_for_exactly_its_window(): void
+    {
+        $this->pausedAndBack();
+        $figures = $this->figures();
+
+        $this->assertSame(1000, $figures->mrr(Carbon::parse('2026-06-09 00:00:00'), 'EUR'));
+        $this->assertSame(0, $figures->mrr(Carbon::parse('2026-06-20 00:00:00'), 'EUR'));
+        $this->assertSame(1000, $figures->mrr(Carbon::parse('2026-07-25 00:00:00'), 'EUR'));
+    }
+
+    #[Test]
+    public function going_into_a_pause_and_coming_back_are_pause_movements_not_churn_or_new(): void
+    {
+        $this->pausedAndBack();
+        $figures = $this->figures();
+
+        $juni = $figures->movements(Carbon::parse('2026-06-01 00:00:00'), Carbon::parse('2026-07-01 00:00:00'), 'EUR');
+        $juli = $figures->movements(Carbon::parse('2026-07-01 00:00:00'), Carbon::parse('2026-08-01 00:00:00'), 'EUR');
+
+        $this->assertSame(0, $juni['churn']);
+        $this->assertSame(1000, $juni['paused']);
+        $this->assertSame(0, $juli['new']);
+        $this->assertSame(0, $juli['reactivation']);
+        // Coming back is the pause undone: the pause column goes negative.
+        $this->assertSame(-1000, $juli['paused']);
+        $this->assertSame(1000, $juli['net']);
+
+        $churn = $figures->churn(Carbon::parse('2026-06-01 00:00:00'), Carbon::parse('2026-07-01 00:00:00'), 'EUR');
+        $this->assertSame(0, $churn['customers_churned']);
+        $this->assertSame(1, $churn['customers_paused']);
+    }
+
+    #[Test]
+    public function a_cohort_counts_a_subscription_in_a_past_pause_as_still_there(): void
+    {
+        $this->pausedAndBack();
+
+        // Started 1 Mar; three months on is 1 Jun (running), four is 1 Jul (paused).
+        $kohorte = $this->row($this->figures()->cohorts(), 'cohort', '2026-03');
+
+        $this->assertSame(100.0, $kohorte['m3']);
+        $this->assertSame(100.0, $kohorte['m6']); // 1 Sep, running again
+    }
+
+    #[Test]
+    public function a_subscription_cancelled_while_paused_stopped_paying_when_the_pause_began(): void
+    {
+        $this->subscription([
+            'amount_cent' => 1000, 'starts_at' => '2026-03-01 09:00:00',
+            'status' => 'cancelled', 'paused_at' => '2026-06-10 09:00:00', 'ended_at' => '2026-08-01 09:00:00',
+        ]);
+        // Paused now, with the column the payments addon writes.
+        $this->subscription([
+            'amount_cent' => 2000, 'starts_at' => '2026-03-01 09:00:00',
+            'status' => 'paused', 'paused_at' => '2026-08-10 09:00:00', 'updated_at' => '2026-09-01 09:00:00',
+        ]);
+
+        $figures = $this->figures();
+
+        $this->assertSame(2000, $figures->mrr(Carbon::parse('2026-07-01 00:00:00'), 'EUR'));
+        $this->assertSame(0, $figures->mrr(Carbon::parse('2026-08-20 00:00:00'), 'EUR'));
+    }
+
     #[Test]
     public function a_customer_who_comes_back_on_a_new_agreement_is_a_reactivation(): void
     {

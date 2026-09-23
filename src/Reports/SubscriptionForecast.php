@@ -36,7 +36,6 @@ class SubscriptionForecast extends SubscriptionReport
     {
         return [
             $this->column('month', $this->t('col_month'), 'month'),
-            $this->column('currency', $this->t('col_currency'), 'text'),
             $this->column('subscriptions_cent', $this->t('col_subscriptions'), Unit::CURRENCY),
             $this->column('plans_cent', $this->t('col_plans'), Unit::CURRENCY),
             $this->column('total_cent', $this->t('col_total'), Unit::CURRENCY),
@@ -45,6 +44,8 @@ class SubscriptionForecast extends SubscriptionReport
 
     public function rows(MetricQuery $query): array
     {
-        return $this->figures()->forecast(self::MONTHS);
+        $this->fresh();
+
+        return $this->only($this->figures()->forecast(self::MONTHS), $query);
     }
 }

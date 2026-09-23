@@ -192,8 +192,10 @@ trait SeedsNeighbourTables
             $table->timestamp('cancelled_at')->nullable();
             $table->timestamp('ended_at')->nullable();
             $table->timestamp('dunning_started_at')->nullable();
+            $table->timestamp('paused_at')->nullable();
             $table->string('email')->nullable();
             $table->string('name')->nullable();
+            $table->json('meta')->nullable();
             $table->timestamps();
         });
     }

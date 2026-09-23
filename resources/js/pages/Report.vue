@@ -10,6 +10,7 @@ import { formatCell, isNumeric } from '../support/cells.js';
 const props = defineProps([
     // { handle, label, description, group, available, requires, usesPeriod, sort, columns, rows, failed }
     'report',
+    'filters',          // { currency: 'EUR' } — what each offered filter is set to
     'period',
     'periodOptions',
     'indexUrl',
@@ -20,6 +21,15 @@ function navigate(params) {
 }
 
 const hasRows = computed(() => props.report.rows.length > 0);
+
+// A filter with one option is not a choice; a switch for it would promise one.
+const switches = computed(() => Object.entries(props.report.filterOptions || {})
+    .filter(([, options]) => Array.isArray(options) && options.length > 1)
+    .map(([name, options]) => ({ name, options })));
+
+function current() {
+    return { period: props.period, ...(props.filters || {}) };
+}
 
 // Core's listing in client mode: the rows are all here, so it sorts them
 // itself and draws the same table the Entries screen draws. It wants an `id`
@@ -57,11 +67,19 @@ const emptyText = computed(() => (props.report.usesPeriod
         <Header :title="report.label" icon="chart-monitoring-indicator">
             <Button :href="indexUrl" :text="__('All reports')" variant="default" />
             <Select
+                v-for="filter in switches"
+                :key="filter.name"
+                :model-value="(filters || {})[filter.name]"
+                :options="filter.options"
+                class="w-28"
+                @update:model-value="(value) => navigate({ ...current(), [filter.name]: value })"
+            />
+            <Select
                 v-if="report.available && report.usesPeriod"
                 :model-value="period"
                 :options="periodOptions"
                 class="w-48"
-                @update:model-value="(value) => navigate({ period: value })"
+                @update:model-value="(value) => navigate({ ...current(), period: value })"
             />
             <Badge v-else-if="report.available" color="default" :text="__('As of now')" />
         </Header>

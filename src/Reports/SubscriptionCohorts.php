@@ -39,12 +39,11 @@ class SubscriptionCohorts extends SubscriptionReport implements HasDefaultSort
     {
         $spalten = [
             $this->column('cohort', $this->t('col_cohort'), 'month'),
-            $this->column('currency', $this->t('col_currency'), 'text'),
             $this->column('started', $this->t('col_started'), Unit::COUNT),
         ];
 
         foreach ([1, 2, 3, 6, 12] as $n) {
-            $spalten[] = $this->column('m'.$n, trans_choice('statamic-insights::subscriptions.col_after_months', $n, ['count' => $n]), Unit::PERCENT);
+            $spalten[] = $this->column('m'.$n, __('statamic-insights::subscriptions.col_after_months', ['count' => $n]), Unit::PERCENT);
         }
 
         $spalten[] = $this->column('live', $this->t('col_live'), Unit::COUNT);
@@ -54,6 +53,8 @@ class SubscriptionCohorts extends SubscriptionReport implements HasDefaultSort
 
     public function rows(MetricQuery $query): array
     {
-        return $this->figures()->cohorts();
+        $this->fresh();
+
+        return $this->only($this->figures()->cohorts(), $query);
     }
 }

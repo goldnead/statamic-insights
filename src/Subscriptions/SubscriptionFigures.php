@@ -157,17 +157,22 @@ final class SubscriptionFigures
      *
      * In each calendar month of the window: of the people paying at its start,
      * the share paying nothing at its end and holding nothing either; and
-     * churned plus contracted MRR over the MRR at its start. Over a window of
-     * several months the rate is the mean of the months — the figure every
-     * subscription business compares, and the only one that does not read
-     * 0 % for a year in which the base grew tenfold and five people left.
-     * Null over nobody. `customers_churned` is the total over the window.
+     * churned plus contracted MRR over the MRR at its start. A piece shorter
+     * than its month is scaled up to it, and the pieces are weighted by their
+     * days ({@see monthlyRate()}): two full months give their mean, a week is a
+     * week scaled to a month. The figure every subscription business compares,
+     * and the only one that does not read 0 % for a year in which the base
+     * grew tenfold and five people left. Null over nobody.
      *
-     * @return array{customers_start: int, customers_churned: int, customer_rate: ?float, revenue_rate: ?float}
+     * `customers_churned` is the total over the window; `customers_paused`
+     * the people who stopped paying into a pause or a failed card instead.
+     *
+     * @return array{customers_start: int, customers_churned: int, customers_paused: int, customer_rate: ?float, revenue_rate: ?float}
      */
     public function churn(Carbon $from, Carbon $until, string $currency): array
     {
         $weg = 0;
+        $pausiert = 0;
         $kundenQuoten = [];
         $umsatzQuoten = [];
 
@@ -185,30 +190,37 @@ final class SubscriptionFigures
             $hier = 0;
 
             foreach (array_keys($vorher) as $kunde) {
-                if (($nachher[$kunde] ?? 0.0) == 0.0 && ! isset($gehalten[$kunde])) {
-                    $hier++;
+                if (($nachher[$kunde] ?? 0.0) == 0.0) {
+                    isset($gehalten[$kunde]) ? $pausiert++ : $hier++;
                 }
             }
 
             $weg += $hier;
 
+            // How long this piece is, and how long its month: a week that lost
+            // one in ten is a month that loses about four in ten.
+            // Calendar days, so a month with a clock change is still 31 of them.
+            $tage = (float) $a->diffInDays($b);
+            $monat = $a->daysInMonth;
+
             if ($vorher !== []) {
-                $kundenQuoten[] = $hier / count($vorher);
+                $kundenQuoten[] = [$hier / count($vorher), $monat, $tage];
             }
 
             $mrrAnfang = $this->mrrExact($a, $currency);
 
             if ($mrrAnfang > 0) {
                 $bewegung = $this->segmentMovements($a, $b, $currency);
-                $umsatzQuoten[] = ($bewegung['churn'] + $bewegung['contraction']) / $mrrAnfang;
+                $umsatzQuoten[] = [($bewegung['churn'] + $bewegung['contraction']) / $mrrAnfang, $monat, $tage];
             }
         }
 
         return [
             'customers_start' => count(array_filter($this->customerMrr($from, $currency), fn ($v) => $v > 0)),
             'customers_churned' => $weg,
-            'customer_rate' => $this->mean($kundenQuoten),
-            'revenue_rate' => $this->mean($umsatzQuoten),
+            'customers_paused' => $pausiert,
+            'customer_rate' => $this->monthlyRate($kundenQuoten),
+            'revenue_rate' => $this->monthlyRate($umsatzQuoten),
         ];
     }
 
@@ -247,10 +259,15 @@ final class SubscriptionFigures
             $ende = $a->monthlyAt($until);
 
             if ($anfang == 0.0 && $ende > 0.0) {
-                $zurueck = ($vorher[$a->customer] ?? 0.0) == 0.0 && $this->hadEarlierAgreement($a, $from);
-                $summe[$zurueck ? 'reactivation' : 'new'] += $ende;
+                if ($a->heldAt($from)) {
+                    // Back from a pause: the pause undone, not a new customer.
+                    $summe['paused'] -= $ende;
+                } else {
+                    $zurueck = ($vorher[$a->customer] ?? 0.0) == 0.0 && $this->hadEarlierAgreement($a, $from);
+                    $summe[$zurueck ? 'reactivation' : 'new'] += $ende;
+                }
             } elseif ($anfang > 0.0 && $ende == 0.0) {
-                $summe[Standing::isHeld($a->standing) ? 'paused' : 'churn'] += $anfang;
+                $summe[$a->heldAt($until) ? 'paused' : 'churn'] += $anfang;
             } elseif ($ende > $anfang) {
                 $summe['expansion'] += $ende - $anfang;
             } elseif ($ende < $anfang) {
@@ -261,10 +278,31 @@ final class SubscriptionFigures
         return $summe;
     }
 
-    /** @param  array<int, float>  $quoten */
-    private function mean(array $quoten): ?float
+    /**
+     * Rates of the pieces of a window as one rate per month.
+     *
+     * Each piece's rate is scaled to its whole month and weighted by its days:
+     * Σ rate × days of its month ÷ Σ days. A full month keeps its own rate, two
+     * full months give their mean, and a single week is scaled up to a month
+     * instead of standing next to a whole month as an equal.
+     *
+     * @param  array<int, array{0: float, 1: int, 2: float}>  $stuecke  rate, days of its month, days covered
+     */
+    private function monthlyRate(array $stuecke): ?float
     {
-        return $quoten === [] ? null : round(array_sum($quoten) / count($quoten) * 100, 1);
+        $tage = array_sum(array_column($stuecke, 2));
+
+        if ($stuecke === [] || $tage <= 0) {
+            return null;
+        }
+
+        $summe = 0.0;
+
+        foreach ($stuecke as [$quote, $monat]) {
+            $summe += $quote * $monat;
+        }
+
+        return round($summe / $tage * 100, 1);
     }
 
     /**

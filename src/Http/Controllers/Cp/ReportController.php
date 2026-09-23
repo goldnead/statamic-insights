@@ -2,6 +2,7 @@
 
 namespace Goldnead\StatamicInsights\Http\Controllers\Cp;
 
+use Goldnead\StatamicInsights\Contracts\Report;
 use Goldnead\StatamicInsights\Support\MetricQuery;
 use Goldnead\StatamicInsights\Support\Period;
 use Goldnead\StatamicInsights\Support\ReportReader;
@@ -50,14 +51,50 @@ class ReportController extends Controller
             $request->query('period', config('statamic-insights.default_period', '30d'))
         );
 
-        $query = new MetricQuery($period, MetricQuery::bucketFor($period));
+        $filters = $this->filters($request, $found);
+        $query = new MetricQuery($period, MetricQuery::bucketFor($period), $filters);
 
         return Inertia::render('insights::Report', [
             'report' => $this->reader->read($found, $query),
+            'filters' => (object) $filters,
             'period' => $period->preset,
             'periodOptions' => $this->periodOptions(),
             'indexUrl' => cp_route('insights.reports'),
         ]);
+    }
+
+    /**
+     * The filters a report offers, each set to what was asked for when that is
+     * one of its options, otherwise to its first option. A report that offers
+     * a currency is never asked for "all of them": it has no such answer.
+     *
+     * @return array<string, string>
+     */
+    protected function filters(Request $request, Report $report): array
+    {
+        $gesetzt = [];
+
+        if (! $this->reader->available($report)) {
+            return $gesetzt;
+        }
+
+        foreach ($this->reader->filterOptions($report) as $name => $optionen) {
+            $werte = array_values(array_filter(array_map(
+                fn ($o) => is_array($o) && isset($o['value']) ? (string) $o['value'] : null,
+                (array) $optionen,
+            ), fn ($v) => $v !== null));
+
+            if ($werte === []) {
+                continue;
+            }
+
+            $gewuenscht = (string) $request->query($name, '');
+            $treffer = array_values(array_filter($werte, fn ($w) => strcasecmp($w, $gewuenscht) === 0));
+
+            $gesetzt[$name] = $treffer[0] ?? $werte[0];
+        }
+
+        return $gesetzt;
     }
 
     /** @return array<int, array<string, string>> */

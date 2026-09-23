@@ -21,16 +21,23 @@ use Illuminate\Support\Carbon;
  *   first renewal is that renewal's. With no renewal at all, the price on the
  *   row. A charge marked `meta.proration` is a settling-up, not a price.
  *
- * It stops at the first date the row offers for the end — `paused_at` for a
- * pause if the column exists, then `ended_at`, `cancelled_at`,
- * `dunning_started_at`, `updated_at` — and only if it is not running now.
- * A running agreement with an old `ended_at` came back from a suspension; the
- * gap is lost, and the figures treat it as having run through.
+ * It stops at the first date the row offers for the end — `paused_at` if it
+ * is set (a pause, or a cancellation during one), then `ended_at`,
+ * `cancelled_at`, `dunning_started_at`, `updated_at` — and only if it is not
+ * running now.
+ *
+ * **Pauses it came back from** are in `meta.pauses`, one
+ * `{paused_at, resumed_at}` per pause: on resuming, `statamic-payments` clears
+ * `paused_at` and `ended_at`, and the row alone would say it never stopped.
+ * Inside such a window it is held, not active. A running agreement with an
+ * old `ended_at` and no such entry came back from a suspension; that gap is
+ * lost, and the figures treat it as having run through.
  */
 final class Agreement
 {
     /**
      * @param  array<int, array{0: Carbon, 1: int}>  $prices  renewal time and amount, in time order
+     * @param  array<int, array{0: Carbon, 1: Carbon}>  $pauses  past pauses it came back from, `[paused_at, resumed_at)`
      */
     public function __construct(
         public readonly int $id,
@@ -48,7 +55,20 @@ final class Agreement
         public readonly ?Carbon $stop,
         public readonly ?Carbon $nextPaymentAt,
         public readonly array $prices = [],
+        public readonly array $pauses = [],
     ) {}
+
+    /** Inside a pause it has since come back from. */
+    public function inPastPause(Carbon $at): bool
+    {
+        foreach ($this->pauses as [$von, $bis]) {
+            if ($at->gte($von) && $at->lt($bis)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /** A payment plan: money on a schedule, never recurring revenue. */
     public function isPlan(): bool
@@ -68,12 +88,23 @@ final class Agreement
             return false;
         }
 
+        if ($this->inPastPause($at)) {
+            return false;
+        }
+
         return $this->stop === null || $at->lt($this->stop);
     }
 
-    /** Stopped by a pause or a failed card at or before this moment, and not ended since. */
+    /**
+     * Held at this moment: inside a pause it later came back from, or stopped
+     * by a pause or a failed card that has not ended since.
+     */
     public function heldAt(Carbon $at): bool
     {
+        if ($this->start !== null && $at->gte($this->start) && $this->inPastPause($at)) {
+            return true;
+        }
+
         return Standing::isHeld($this->standing)
             && $this->stop !== null
             && $this->start !== null

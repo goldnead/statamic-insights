@@ -49,14 +49,25 @@ class SubscriptionView
 
         return [
             'tiles' => [
-                $this->tile('mrr', __('statamic-insights::subscriptions.tile_mrr'), Unit::CURRENCY, $geld, $mrr, $mrrVorher),
-                $this->tile('arr', __('statamic-insights::subscriptions.tile_arr'), Unit::CURRENCY, $geld, $figures->arr($jetzt, $currency), $figures->arr($von, $currency)),
-                $this->tile('active', __('statamic-insights::subscriptions.tile_active'), Unit::COUNT, [], $aktiv, $figures->activeCount($von, $currency)),
-                $this->tile('started', __('statamic-insights::subscriptions.tile_started'), Unit::COUNT, [], $figures->startedCount($von, $bis, $currency)),
-                $this->tile('customer_churn', __('statamic-insights::subscriptions.tile_customer_churn'), Unit::PERCENT, [], $churn['customer_rate']),
-                $this->tile('revenue_churn', __('statamic-insights::subscriptions.tile_revenue_churn'), Unit::PERCENT, [], $churn['revenue_rate']),
-                $this->tile('upcoming', __('statamic-insights::subscriptions.tile_upcoming'), Unit::CURRENCY, $geld, array_sum(array_column($faellig, 'amount_cent'))),
-                $this->tile('forecast', __('statamic-insights::subscriptions.tile_forecast'), Unit::CURRENCY, $geld, $figures->forecastTotal(SubscriptionForecast::MONTHS, $currency)),
+                $this->tile('mrr', Unit::CURRENCY, $geld, $mrr, $mrrVorher),
+                $this->tile('arr', Unit::CURRENCY, $geld, $figures->arr($jetzt, $currency), $figures->arr($von, $currency)),
+                $this->tile('active', Unit::COUNT, [], $aktiv, $figures->activeCount($von, $currency), [
+                    $stand['trial']['count'] > 0
+                        ? trans_choice('statamic-insights::subscriptions.detail_trials', $stand['trial']['count'], ['count' => $stand['trial']['count']])
+                        : null,
+                ]),
+                $this->tile('started', Unit::COUNT, [], $figures->startedCount($von, $bis, $currency)),
+                $this->tile('customer_churn', Unit::PERCENT, [], $churn['customer_rate'], null, [
+                    trans_choice('statamic-insights::subscriptions.detail_churned', $churn['customers_churned'], ['count' => $churn['customers_churned']]),
+                    $churn['customers_paused'] > 0
+                        ? trans_choice('statamic-insights::subscriptions.detail_paused', $churn['customers_paused'], ['count' => $churn['customers_paused']])
+                        : null,
+                ]),
+                $this->tile('revenue_churn', Unit::PERCENT, [], $churn['revenue_rate']),
+                $this->tile('upcoming', Unit::CURRENCY, $geld, array_sum(array_column($faellig, 'amount_cent')), null, [
+                    trans_choice('statamic-insights::subscriptions.detail_charges', count($faellig), ['count' => count($faellig)]),
+                ]),
+                $this->tile('forecast', Unit::CURRENCY, $geld, $figures->forecastTotal(SubscriptionForecast::MONTHS, $currency)),
             ],
             'churn' => $churn,
             'movements' => $figures->movements($von, $bis, $currency),
@@ -78,10 +89,14 @@ class SubscriptionView
     }
 
     /**
+     * One figure with its name, the sentence that says what it counts, and
+     * any short facts beside it.
+     *
      * @param  array<string, mixed>  $meta
+     * @param  array<int, string|null>  $details
      * @return array<string, mixed>
      */
-    protected function tile(string $handle, string $label, string $unit, array $meta, int|float|null $value, int|float|null $previous = null): array
+    protected function tile(string $handle, string $unit, array $meta, int|float|null $value, int|float|null $previous = null, array $details = []): array
     {
         $delta = null;
 
@@ -89,7 +104,17 @@ class SubscriptionView
             $delta = round(($value - $previous) / $previous * 100, 1);
         }
 
-        return compact('handle', 'label', 'unit', 'meta', 'value', 'previous', 'delta');
+        return [
+            'handle' => $handle,
+            'label' => __("statamic-insights::subscriptions.tile_{$handle}"),
+            'hint' => __("statamic-insights::subscriptions.tile_{$handle}_hint"),
+            'details' => array_values(array_filter($details)),
+            'unit' => $unit,
+            'meta' => $meta,
+            'value' => $value,
+            'previous' => $previous,
+            'delta' => $delta,
+        ];
     }
 
     /**

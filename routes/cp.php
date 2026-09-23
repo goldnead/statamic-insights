@@ -19,7 +19,12 @@ use Illuminate\Support\Facades\Route;
  * whole Control Panel down with a RouteNotFoundException.
  */
 Route::prefix('insights')->name('insights.')->group(function () {
-    Route::get('/', [RevenueController::class, 'index'])->name('revenue');
+    // The revenue screen lives at /revenue, not at the root. At the root it sat
+    // above every sibling, and Statamic marks the first nav child whose URL a
+    // page lies under as active: every single report and metric showed
+    // "Revenue" in the breadcrumb. The root still leads there for bookmarks.
+    Route::get('/', fn () => redirect(cp_route('insights.revenue')))->name('index');
+    Route::get('/revenue', [RevenueController::class, 'index'])->name('revenue');
     Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions');
     Route::get('/metrics', [MetricController::class, 'index'])->name('metrics');
     Route::get('/metrics/{metric}', [MetricController::class, 'show'])->name('metrics.show');

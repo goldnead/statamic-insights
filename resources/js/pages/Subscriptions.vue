@@ -54,17 +54,23 @@ const movementRows = computed(() => {
     const m = props.movements || {};
 
     return [
-        { key: 'mrr_start', label: __('MRR at start'), value: m.mrr_start, strong: true },
+        { key: 'mrr_start', label: __('At the start'), value: m.mrr_start, strong: true },
         { key: 'new', label: __('New'), value: m.new },
-        { key: 'reactivation', label: __('Reactivated'), value: m.reactivation },
+        // Most shops never see anybody come back; a line of zeros says nothing.
+        m.reactivation ? { key: 'reactivation', label: __('Reactivated'), value: m.reactivation } : null,
         { key: 'expansion', label: __('Expansion'), value: m.expansion },
         { key: 'contraction', label: __('Contraction'), value: -(m.contraction || 0) },
         { key: 'churn', label: __('Churned'), value: -(m.churn || 0) },
         { key: 'paused', label: __('Paused or suspended'), value: -(m.paused || 0), hint: __('Not counted as churn.') },
-        { key: 'net', label: __('Net new MRR'), value: m.net, strong: true },
-        { key: 'mrr_end', label: __('MRR at end'), value: m.mrr_end, strong: true },
-    ];
+        { key: 'net', label: __('Change'), value: m.net, strong: true },
+        { key: 'mrr_end', label: __('At the end'), value: m.mrr_end, strong: true },
+    ].filter(Boolean);
 });
+
+// "+692,3 %" in the reader's language, not "+692.3%".
+function deltaText(delta) {
+    return `${delta > 0 ? '+' : delta < 0 ? '−' : ''}${formatValue(Math.abs(delta), 'percent')}`;
+}
 
 function signed(cent) {
     if (!cent) return money(0);
@@ -93,7 +99,7 @@ function signed(cent) {
         </header>
 
         <Header v-if="installed && hasSubscriptions" :title="__('Subscriptions')" icon="chart-monitoring-indicator">
-            <Button :href="reportUrls.movements" :text="__('MRR by month')" variant="default" />
+            <Button :href="reportUrls.movements" :text="__('Month by month')" variant="default" />
             <Select
                 v-if="currencyOptions.length > 1"
                 :model-value="currency"
@@ -145,14 +151,12 @@ function signed(cent) {
                             v-if="tile.delta !== null && tile.delta !== undefined"
                             size="sm"
                             :variant="tile.delta < 0 ? 'danger' : 'subtle'"
-                        >{{ tile.delta > 0 ? '+' : '' }}{{ tile.delta }}%</Text>
+                        >{{ deltaText(tile.delta) }}</Text>
                     </div>
-                    <Text v-if="tile.handle === 'customer_churn' && churn" size="xs" variant="subtle">
-                        {{ __(':churned customers left in this period', { churned: churn.customers_churned }) }}
+                    <Text v-for="(detail, index) in tile.details" :key="index" size="xs" variant="subtle" class="block">
+                        {{ detail }}
                     </Text>
-                    <Text v-if="tile.handle === 'upcoming' && upcoming" size="xs" variant="subtle">
-                        {{ __(':count charges', { count: upcoming.count }) }}
-                    </Text>
+                    <Text v-if="tile.hint" size="xs" variant="subtle" class="mt-2 block">{{ tile.hint }}</Text>
                 </Card>
             </div>
 
@@ -162,7 +166,7 @@ function signed(cent) {
                 </Text>
             </div>
 
-            <Panel v-if="hasChart" :heading="__('MRR over time')" class="mb-6">
+            <Panel v-if="hasChart" :heading="__('Monthly recurring revenue over time')" class="mb-6">
                 <Card>
                     <div v-if="hasValues" class="mb-1 flex justify-end">
                         <Text size="xs" variant="subtle" class="tabular-nums">{{ money(peak) }}</Text>
@@ -176,7 +180,7 @@ function signed(cent) {
             </Panel>
 
             <div class="grid gap-6 md:grid-cols-2 *:min-w-0 mb-6">
-                <Panel :heading="__('Net new MRR in this period')">
+                <Panel :heading="__('Change in this period')">
                     <Card>
                         <ul class="-my-2 divide-y divide-content-border">
                             <li v-for="row in movementRows" :key="row.key" class="py-2.5 text-sm">
@@ -202,7 +206,9 @@ function signed(cent) {
                                 </div>
                                 <div v-if="row.mrr && row.key !== 'active'" class="mt-1 flex justify-end">
                                     <Text size="xs" variant="subtle" class="tabular-nums">
-                                        {{ __(':amount per month', { amount: money(row.mrr) }) }}
+                                        <template v-if="row.key === 'ended'">{{ __(':amount lost', { amount: money(row.mrr) }) }}</template>
+                                        <template v-else-if="row.key === 'trial'">{{ __('from the first charge :amount per month', { amount: money(row.mrr) }) }}</template>
+                                        <template v-else>{{ __(':amount per month', { amount: money(row.mrr) }) }}</template>
                                     </Text>
                                 </div>
                             </li>

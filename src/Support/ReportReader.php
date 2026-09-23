@@ -3,6 +3,7 @@
 namespace Goldnead\StatamicInsights\Support;
 
 use Goldnead\StatamicInsights\Contracts\HasDefaultSort;
+use Goldnead\StatamicInsights\Contracts\HasFilterOptions;
 use Goldnead\StatamicInsights\Contracts\Report;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -91,8 +92,10 @@ class ReportReader
         }
 
         try {
-            $columns = $report->columns();
+            // Rows first: a report may drop a column that came out empty in
+            // this answer, and it only knows once the rows are built.
             $rows = $report->rows($query);
+            $columns = $report->columns();
             $failed = false;
         } catch (Throwable $e) {
             Log::warning("insights: the report [{$report->handle()}] failed at [rows] and was left empty.", [
@@ -104,7 +107,37 @@ class ReportReader
             $failed = true;
         }
 
-        return $described + ['columns' => $columns, 'rows' => array_values($rows), 'failed' => $failed];
+        return $described + [
+            'columns' => $columns,
+            'rows' => array_values($rows),
+            'failed' => $failed,
+            'filterOptions' => $this->filterOptions($report),
+        ];
+    }
+
+    /**
+     * What the report's filters may be set to, for a switch above the table.
+     *
+     * Optional, through {@see HasFilterOptions}, the contract metrics already
+     * use for the same question. A report without it gets no switch.
+     *
+     * @return array<string, array<int, array{value: string, label: string}>>
+     */
+    public function filterOptions(Report $report): array
+    {
+        if (! $report instanceof HasFilterOptions) {
+            return [];
+        }
+
+        try {
+            return $report->filterOptions();
+        } catch (Throwable $e) {
+            Log::warning("insights: the report [{$report->handle()}] failed while listing its filter options.", [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     /**
@@ -131,7 +164,7 @@ class ReportReader
         return $groups;
     }
 
-    protected function available(Report $report): bool
+    public function available(Report $report): bool
     {
         try {
             return $report->available();
