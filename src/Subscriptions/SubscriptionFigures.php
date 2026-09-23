@@ -281,10 +281,14 @@ final class SubscriptionFigures
     /**
      * Rates of the pieces of a window as one rate per month.
      *
-     * Each piece's rate is scaled to its whole month and weighted by its days:
-     * Σ rate × days of its month ÷ Σ days. A full month keeps its own rate, two
-     * full months give their mean, and a single week is scaled up to a month
-     * instead of standing next to a whole month as an equal.
+     * Each piece's rate is compounded to its whole month, 1 − (1 − r)^(month / days),
+     * and the pieces are weighted by their days. A full month keeps its own
+     * rate, two full months give their mean, and a single week is scaled up to
+     * a month instead of standing next to a whole month as an equal.
+     *
+     * Compounded, not multiplied: two of three leaving in a week is not 295 %
+     * a month, it is everybody but a sliver. A linear scale-up treats the
+     * people who already left as still there to leave again.
      *
      * @param  array<int, array{0: float, 1: int, 2: float}>  $stuecke  rate, days of its month, days covered
      */
@@ -298,8 +302,13 @@ final class SubscriptionFigures
 
         $summe = 0.0;
 
-        foreach ($stuecke as [$quote, $monat]) {
-            $summe += $quote * $monat;
+        foreach ($stuecke as [$quote, $monat, $dauer]) {
+            if ($dauer <= 0) {
+                continue;
+            }
+
+            $quote = min(1.0, max(0.0, $quote));
+            $summe += (1 - (1 - $quote) ** ($monat / $dauer)) * $dauer;
         }
 
         return round($summe / $tage * 100, 1);

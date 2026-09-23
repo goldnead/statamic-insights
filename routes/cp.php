@@ -4,6 +4,7 @@ use Goldnead\StatamicInsights\Http\Controllers\Cp\MetricController;
 use Goldnead\StatamicInsights\Http\Controllers\Cp\ReportController;
 use Goldnead\StatamicInsights\Http\Controllers\Cp\RevenueController;
 use Goldnead\StatamicInsights\Http\Controllers\Cp\SubscriptionController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,7 +24,10 @@ Route::prefix('insights')->name('insights.')->group(function () {
     // above every sibling, and Statamic marks the first nav child whose URL a
     // page lies under as active: every single report and metric showed
     // "Revenue" in the breadcrumb. The root still leads there for bookmarks.
-    Route::get('/', fn () => redirect(cp_route('insights.revenue')))->name('index');
+    // With its query: a bookmark of a period and a currency keeps both.
+    Route::get('/', fn (Request $request) => redirect(
+        cp_route('insights.revenue').($request->getQueryString() ? '?'.$request->getQueryString() : '')
+    ))->name('index');
     Route::get('/revenue', [RevenueController::class, 'index'])->name('revenue');
     Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions');
     Route::get('/metrics', [MetricController::class, 'index'])->name('metrics');

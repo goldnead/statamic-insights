@@ -268,8 +268,42 @@ class SubscriptionFiguresTest extends ReportsTestCase
             'EUR',
         );
 
-        $this->assertSame(round((0.1 * 31 + 0 * 30) / (7 + 4) * 100, 1), $churn['customer_rate']);
-        $this->assertSame(round((0.1 * 31 + 0 * 30) / (7 + 4) * 100, 1), $churn['revenue_rate']);
+        // Compounded, not linear: 1 − 0.9^(31/7) = 37.3 % for the August week,
+        // 0 for the September days, weighted by days: 37.3 × 7 / 11 = 23.7 %.
+        $august = 1 - (1 - 0.1) ** (31 / 7);
+        $erwartet = round(($august * 7 + 0 * 4) / (7 + 4) * 100, 1);
+
+        $this->assertSame(23.7, $erwartet);
+        $this->assertSame($erwartet, $churn['customer_rate']);
+        $this->assertSame($erwartet, $churn['revenue_rate']);
+    }
+
+    /**
+     * Three paying, two leave in the first week of August. Scaled linearly
+     * that is 2/3 × 31/7 = 295.2 % "per month", a share of customers larger
+     * than all of them. Compounded: 1 − (1/3)^(31/7) = 99.2 %.
+     */
+    #[Test]
+    public function a_monthly_rate_never_exceeds_everybody(): void
+    {
+        $this->subscription(['email' => 'bleibt@x.de', 'amount_cent' => 1000, 'starts_at' => '2026-05-01 09:00:00']);
+        foreach (['a', 'b'] as $wer) {
+            $this->subscription([
+                'email' => "{$wer}@x.de", 'amount_cent' => 1000, 'starts_at' => '2026-05-01 09:00:00',
+                'status' => 'cancelled', 'ended_at' => '2026-08-04 09:00:00',
+            ]);
+        }
+
+        $churn = $this->figures()->churn(
+            Carbon::parse('2026-08-01 00:00:00'),
+            Carbon::parse('2026-08-08 00:00:00'),
+            'EUR',
+        );
+
+        $this->assertSame(99.2, round((1 - (1 / 3) ** (31 / 7)) * 100, 1));
+        $this->assertSame(99.2, $churn['customer_rate']);
+        $this->assertSame(99.2, $churn['revenue_rate']);
+        $this->assertLessThanOrEqual(100.0, $churn['customer_rate']);
     }
 
     /**

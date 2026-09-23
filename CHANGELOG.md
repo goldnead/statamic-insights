@@ -26,8 +26,9 @@ not know are *held*: their own movement, counted as retained, never churn; an un
 named on screen. The price at a moment is what the latest renewal charged, not the checkout,
 which may carry a bump or a setup fee; a charge marked `meta.proration` is ignored.
 
-Churn rates are per month: a window shorter than its month is scaled up to it and the pieces of a
-window are weighted by their days. Pauses a subscription came back from (`meta.pauses`, written by
+Churn rates are per month: a window shorter than its month is compounded up to it,
+`1 − (1 − r)^(month / days)`, so a rate can never pass 100 %, and the pieces of a window are
+weighted by their days. Pauses a subscription came back from (`meta.pauses`, written by
 statamic-payments on resuming) take it out of MRR for exactly that window; going in and coming
 back are both pause movements, never churn or new. A subscription cancelled during a pause stopped
 paying when the pause began (`paused_at`).
@@ -40,7 +41,7 @@ report screen draws a switch for every filter with more than one option.
 
 The revenue screen lived at `/cp/insights`, above every other screen, and Statamic marks the first
 nav child a page lies under as active. It now lives at `/cp/insights/revenue`; `/cp/insights`
-redirects there. Wrong since 1.2.0. After updating, `php artisan cache:clear` so the Control
+redirects there, period and currency included. Wrong since 1.2.0. After updating, `php artisan cache:clear` so the Control
 Panel's cached nav addresses are rebuilt.
 
 The database only selects; every date is compared in PHP, so the figures are the same on SQLite,

@@ -76,4 +76,19 @@ class BreadcrumbTest extends TestCase
             ->get(cp_route('insights.index'))
             ->assertRedirect(cp_route('insights.revenue'));
     }
+
+    #[Test]
+    public function the_old_address_keeps_its_period_and_currency(): void
+    {
+        $ziel = $this->actingAs(tap(User::make()->email('darf@example.com')->makeSuper())->save())
+            ->get(cp_route('insights.index').'?period=90d&currency=CHF')
+            ->assertRedirect()
+            ->headers->get('Location');
+
+        $this->assertStringStartsWith(cp_route('insights.revenue').'?', (string) $ziel);
+        parse_str((string) parse_url((string) $ziel, PHP_URL_QUERY), $query);
+        // Order aside, both survive.
+        ksort($query);
+        $this->assertSame(['currency' => 'CHF', 'period' => '90d'], $query);
+    }
 }
