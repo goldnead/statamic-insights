@@ -2,7 +2,16 @@
 
 All notable changes to this addon are documented here.
 
-## Unreleased
+## 1.5.0 — 2026-09-23
+
+### Upgrading
+
+- **Run `php artisan cache:clear` after updating.** The revenue screen moved from `/cp/insights`
+  to `/cp/insights/revenue` (see below), and the Control Panel keeps the old nav addresses in
+  its cache until it is cleared. Bookmarks to `/cp/insights` keep working through a redirect.
+- No migration, no new config key, no contract changed.
+- The subscription figures read the `subscriptions` table of statamic-payments. Pauses exist from
+  statamic-payments 1.25; against an older version the screen simply shows none.
 
 ### Added: subscription figures
 
@@ -46,7 +55,7 @@ Panel's cached nav addresses are rebuilt.
 
 The database only selects; every date is compared in PHP, so the figures are the same on SQLite,
 MySQL and Postgres — the new tests were run against all three (`INSIGHTS_TEST_DB_URL`).
-No contract changed; the reports use the existing `Report` contract. No migration, no new config key.
+The reports use the existing `Report` contract.
 
 ## 1.4.0 — 2026-09-16
 
