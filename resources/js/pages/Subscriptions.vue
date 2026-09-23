@@ -89,7 +89,7 @@ function signed(cent) {
             :text="`${__('Subscriptions')}: ${option.label}`"
             category="Actions"
             icon="chart-monitoring-indicator"
-            @selected="navigate({ period: option.value, currency })"
+            :action="() => navigate({ period: option.value, currency })"
         />
 
         <header v-if="!installed || !hasSubscriptions" class="py-8 pt-16 text-center">

@@ -90,7 +90,7 @@ function share(cent) {
             :text="`${__('Revenue')}: ${option.label}`"
             category="Actions"
             icon="chart-monitoring-indicator"
-            @selected="navigate({ period: option.value, currency })"
+            :action="() => navigate({ period: option.value, currency })"
         />
 
         <!--

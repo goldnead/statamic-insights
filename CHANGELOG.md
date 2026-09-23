@@ -53,6 +53,14 @@ nav child a page lies under as active. It now lives at `/cp/insights/revenue`; `
 redirects there, period and currency included. Wrong since 1.2.0. After updating, `php artisan cache:clear` so the Control
 Panel's cached nav addresses are rebuilt.
 
+### Fixed: the period entries in the command palette did nothing
+
+The revenue and subscriptions screens offered one command palette entry per period, wired with an
+`@selected` listener that core's palette never calls. Choosing one did nothing, and every page load
+logged "You must provide a `url` string or `action` function" once per entry (seven on the
+subscriptions screen, found on staging with 1.5.0-rc.1). They now pass an `action`. A test reads
+every page for palette entries without a `url` or an `action`.
+
 The database only selects; every date is compared in PHP, so the figures are the same on SQLite,
 MySQL and Postgres — the new tests were run against all three (`INSIGHTS_TEST_DB_URL`).
 The reports use the existing `Report` contract.
