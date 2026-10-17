@@ -11,10 +11,6 @@ parameters:
     paths:
         - src
 
-    # The sibling addons (payments, offers, entitlements, ...) are `suggest`s
-    # and absent in a bare install; the baseline must not hide anything else.
-    reportUnmatchedIgnoredErrors: false
-
     ignoreErrors:
         # Older Statamic annotates AddonServiceProvider::$vite as list<string>,
         # newer ones with the keyed shape (input / publicDirectory). CI resolves
