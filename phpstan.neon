@@ -1,0 +1,27 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    # A ratchet for new code, not a mandate to rewrite the package. Everything
+    # the level cannot see today sits in the baseline and has to shrink, never
+    # grow.
+    level: 5
+
+    paths:
+        - src
+
+    # The sibling addons (payments, offers, entitlements, ...) are `suggest`s
+    # and absent in a bare install; the baseline must not hide anything else.
+    reportUnmatchedIgnoredErrors: false
+
+    ignoreErrors:
+        # Older Statamic annotates AddonServiceProvider::$vite as list<string>,
+        # newer ones with the keyed shape (input / publicDirectory). CI resolves
+        # the newer, the lock file the older; only the older needs the
+        # exception, hence silent when it does not match.
+        -
+            identifier: property.defaultValue
+            message: '#ServiceProvider\:\:\$vite \(list\<string\>\) does not accept default value#'
+            path: src/ServiceProvider.php
+            reportUnmatched: false

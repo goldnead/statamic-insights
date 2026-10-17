@@ -1,0 +1,61 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function is_array\(\) with array\{value\: string, label\: string\} will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Http/Controllers/Cp/ReportController.php
+
+		-
+			message: '#^Offset ''value'' on array\{value\: string, label\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: src/Http/Controllers/Cp/ReportController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: src/Http/Controllers/Cp/ReportController.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\{value\: string, label\: string\} will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Http/Controllers/Cp/RevenueController.php
+
+		-
+			message: '#^Offset ''grossCent'' on non\-empty\-array\<string, mixed\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Http/Controllers/Cp/RevenueController.php
+
+		-
+			message: '#^Offset ''label'' on array\{value\: string, label\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: src/Http/Controllers/Cp/RevenueController.php
+
+		-
+			message: '#^Offset ''value'' on array\{value\: string, label\: string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: src/Http/Controllers/Cp/RevenueController.php
+
+		-
+			message: '#^Call to function class_exists\(\) with ''\\\\Goldnead…'' will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: src/Support/Neighbours.php
+
+		-
+			message: '#^Offset ''column'' on array\{column\: string, direction\: ''asc''\|''desc''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Support/ReportReader.php
+
+		-
+			message: '#^Offset ''direction'' on array\{column\: string, direction\: ''asc''\|''desc''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Support/ReportReader.php

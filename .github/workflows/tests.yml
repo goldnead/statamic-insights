@@ -76,6 +76,11 @@ jobs:
       # rewrites their work without asking — one reference addon does this; do not copy it.
       - run: vendor/bin/pint --test
 
+      # Larastan sits in require-dev; without phpstan.neon it never ran.
+      # Level 5 plus a generated baseline: a ratchet, the baseline may shrink, never grow.
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
   standards:
     runs-on: ubuntu-latest
     name: Addon standards
