@@ -3,6 +3,7 @@
 use Goldnead\StatamicInsights\Http\Controllers\Cp\MetricController;
 use Goldnead\StatamicInsights\Http\Controllers\Cp\ReportController;
 use Goldnead\StatamicInsights\Http\Controllers\Cp\RevenueController;
+use Goldnead\StatamicInsights\Http\Controllers\Cp\SearchConsoleController;
 use Goldnead\StatamicInsights\Http\Controllers\Cp\SubscriptionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +31,7 @@ Route::prefix('insights')->name('insights.')->group(function () {
     ))->name('index');
     Route::get('/revenue', [RevenueController::class, 'index'])->name('revenue');
     Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions');
+    Route::get('/search-console', [SearchConsoleController::class, 'index'])->name('search-console');
     Route::get('/metrics', [MetricController::class, 'index'])->name('metrics');
     Route::get('/metrics/{metric}', [MetricController::class, 'show'])->name('metrics.show');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports');

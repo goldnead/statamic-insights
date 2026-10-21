@@ -13,10 +13,12 @@ import Metric from './pages/Metric.vue';
 import Reports from './pages/Reports.vue';
 import Report from './pages/Report.vue';
 import Subscriptions from './pages/Subscriptions.vue';
+import SearchConsole from './pages/SearchConsole.vue';
 
 Statamic.booting(() => {
     Statamic.$inertia.register('insights::Revenue', Revenue);
     Statamic.$inertia.register('insights::Subscriptions', Subscriptions);
+    Statamic.$inertia.register('insights::SearchConsole', SearchConsole);
     Statamic.$inertia.register('insights::Metrics', Metrics);
     Statamic.$inertia.register('insights::Metric', Metric);
     Statamic.$inertia.register('insights::Reports', Reports);

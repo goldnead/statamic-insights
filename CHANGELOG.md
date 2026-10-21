@@ -2,6 +2,21 @@
 
 All notable changes to this addon are documented here.
 
+## 1.7.0 — 2026-10-21
+
+### Added
+
+- Search Console: a new screen under Insights that shows clicks, impressions, click-through rate and average position for the last 7 and 28 days, each against the period before, a chart per day and the top queries and top pages of the last 28 days. It reads one JSON snapshot (format version 1, documented in the README) that another job writes; the addon never calls Google and holds no Google credentials.
+- Config `statamic-insights.search_console.snapshot` (env `STATAMIC_INSIGHTS_SEARCH_CONSOLE_SNAPSHOT`, default `storage/app/insights/search-console.json`).
+- German and English strings for the new screen.
+
+### Changed
+
+- The Control Panel bundle is rebuilt for the new screen.
+
+### Upgrading
+
+- No migration. Without the snapshot file the new navigation entry does not appear and nothing else changes.
 ## 1.6.0 — 2026-10-17
 
 ### Changed
