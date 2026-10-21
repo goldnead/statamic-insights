@@ -15,6 +15,7 @@ use Goldnead\StatamicInsights\Reports\SubscriptionCohorts;
 use Goldnead\StatamicInsights\Reports\SubscriptionForecast;
 use Goldnead\StatamicInsights\Reports\UpcomingCharges;
 use Goldnead\StatamicInsights\Reports\UpsellPerformance;
+use Goldnead\StatamicInsights\SearchConsole\SnapshotReader;
 use Goldnead\StatamicInsights\Support\MetricRegistry;
 use Goldnead\StatamicInsights\Support\Neighbours;
 use Goldnead\StatamicInsights\Support\ReportRegistry;
@@ -71,6 +72,10 @@ class ServiceProvider extends AddonServiceProvider
         // one screen share the memo inside it. Resolved per metric rather than
         // injected, because the metrics are constructed while booting.
         $this->app->singleton(Rybbit::class);
+
+        // A singleton so the navigation, the controller and anything else in
+        // one request share the single read of the snapshot file.
+        $this->app->singleton(SnapshotReader::class);
 
         $langPath = __DIR__.'/../resources/lang';
 
@@ -270,22 +275,44 @@ class ServiceProvider extends AddonServiceProvider
 
     protected function registerNavigation(): void
     {
-        Nav::extend(function ($nav) {
-            $nav->create(__('statamic-insights::nav.insights'))
-                ->section('Tools')
-                ->icon('chart-monitoring-indicator')
-                ->route('insights.revenue')
-                ->can('view insights')
-                ->children([
-                    // The curated screen stays first: it is the one somebody
-                    // opens with a question in mind. The generic list is where
-                    // you go when you do not know what you are looking for.
-                    $nav->item(__('statamic-insights::nav.revenue'))->route('insights.revenue'),
-                    $nav->item(__('statamic-insights::nav.subscriptions'))->route('insights.subscriptions'),
-                    $nav->item(__('statamic-insights::nav.metrics'))->route('insights.metrics'),
-                    $nav->item(__('statamic-insights::nav.reports'))->route('insights.reports'),
-                ]);
-        });
+        Nav::extend(fn ($nav) => $this->buildNavigation($nav));
+    }
+
+    /**
+     * The Insights entry and its children, put on a navigation builder.
+     *
+     * Public for one reason: the Control Panel test harness replaces the `Nav`
+     * facade with a mock, so the only way to look at what this adds is to hand
+     * it a real builder.
+     *
+     * @param  \Statamic\CP\Navigation\Nav  $nav
+     */
+    public function buildNavigation($nav): void
+    {
+        $children = [
+            // The curated screen stays first: it is the one somebody
+            // opens with a question in mind. The generic list is where
+            // you go when you do not know what you are looking for.
+            $nav->item(__('statamic-insights::nav.revenue'))->route('insights.revenue'),
+            $nav->item(__('statamic-insights::nav.subscriptions'))->route('insights.subscriptions'),
+        ];
+
+        // Only while a snapshot file exists. Same judgement as the Website
+        // group: an entry for a source this installation does not have
+        // promises a screen with nothing on it.
+        if ($this->app->make(SnapshotReader::class)->exists()) {
+            $children[] = $nav->item(__('statamic-insights::nav.search_console'))->route('insights.search-console');
+        }
+
+        $children[] = $nav->item(__('statamic-insights::nav.metrics'))->route('insights.metrics');
+        $children[] = $nav->item(__('statamic-insights::nav.reports'))->route('insights.reports');
+
+        $nav->create(__('statamic-insights::nav.insights'))
+            ->section('Tools')
+            ->icon('chart-monitoring-indicator')
+            ->route('insights.revenue')
+            ->can('view insights')
+            ->children($children);
     }
 
     protected function registerPermissions(): void

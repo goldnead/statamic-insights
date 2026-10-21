@@ -74,6 +74,74 @@ period and one on each of the three. And a rate over a window with no sessions
 answers with a dash rather than `0 %` — "nothing to measure" and "measured
 nothing" are different statements.
 
+## Search Console
+
+A screen for what Google Search says about the site: clicks, impressions,
+click-through rate (CTR) and average position, for the last 7 and the last 28
+days, each against the period before it, plus a chart per day and the top
+queries and top pages of the last 28 days.
+
+**This addon never calls Google and holds no Google credentials.** It reads one
+JSON file. Something outside this installation writes it (a scheduled script,
+a job on another machine) and puts it where the addon looks:
+
+```dotenv
+# default: storage/app/insights/search-console.json
+STATAMIC_INSIGHTS_SEARCH_CONSOLE_SNAPSHOT=/path/to/search-console.json
+```
+
+Config key: `statamic-insights.search_console.snapshot`.
+
+**No file, no section.** Without the file there is no **Search Console** entry
+under Insights and nothing about it on any other screen, and no error. With a
+file that cannot be read (cut off, not JSON, another version) the entry stays
+and the screen says "Snapshot not readable" instead of failing. A snapshot
+older than three days gets a note beside its "As of" time, which is printed in
+`app.timezone`. The file is read at most once per request, and again only when
+it changed.
+
+### Snapshot format, version 1
+
+```json
+{
+  "version": 1,
+  "property": "sc-domain:example.com",
+  "fetched_at": "2026-10-21T05:30:12+02:00",
+  "daily": [
+    { "date": "2026-08-27", "clicks": 3, "impressions": 120, "ctr": 0.025, "position": 14.2 }
+  ],
+  "periods": {
+    "7d":           { "start": "2026-10-13", "end": "2026-10-19", "clicks": 42, "impressions": 1800, "ctr": 0.0233, "position": 11.4 },
+    "previous_7d":  { "start": "2026-10-06", "end": "2026-10-12", "clicks": 30, "impressions": 1500, "ctr": 0.02,   "position": 12.6 },
+    "28d":          { "start": "2026-09-22", "end": "2026-10-19", "clicks": 160, "impressions": 7000, "ctr": 0.0229, "position": 12.1 },
+    "previous_28d": { "start": "2026-08-25", "end": "2026-09-21", "clicks": 120, "impressions": 6100, "ctr": 0.0197, "position": 13.0 }
+  },
+  "top_queries": {
+    "28d":          [ { "query": "choir near me", "clicks": 40, "impressions": 900, "ctr": 0.0444, "position": 5.2 } ],
+    "previous_28d": [ { "query": "choir near me", "clicks": 31, "impressions": 820, "ctr": 0.0378, "position": 6.0 } ]
+  },
+  "top_pages": {
+    "28d":          [ { "page": "https://example.com/", "clicks": 80, "impressions": 2400, "ctr": 0.0333, "position": 7.4 } ],
+    "previous_28d": [ { "page": "https://example.com/", "clicks": 60, "impressions": 2100, "ctr": 0.0286, "position": 8.0 } ]
+  }
+}
+```
+
+- `daily`: 56 days without a gap, oldest first. `ctr` is a share between 0 and 1.
+- The windows end two days before `fetched_at`, because Search Console reports
+  with that delay.
+- `top_queries` and `top_pages`: the top 25 of each window. A row in the 28-day
+  list shows its earlier clicks only if it is in the earlier list too. Missing
+  there means "not listed", never zero.
+- Required for the screen to read the file: `version` (exactly `1`), `fetched_at`,
+  `daily`, and the four `periods` with at least `clicks` and `impressions`. A
+  missing top list is an empty table.
+
+**Reading the changes.** The change is relative to the period before (percent of
+the earlier value). With an earlier value of zero or none there is no
+percentage, only "Nothing to compare against". Position is the one figure where
+less is better: position 11.4 after 12.6 is an improvement and is shown as one.
+
 ## Usage
 
 Open **Tools → Insights**. The screen answers four questions at a glance and two

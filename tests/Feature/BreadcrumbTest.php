@@ -28,6 +28,7 @@ class BreadcrumbTest extends TestCase
         return [
             'revenue' => cp_route('insights.revenue'),
             'subscriptions' => cp_route('insights.subscriptions'),
+            'search-console' => cp_route('insights.search-console'),
             'metrics' => cp_route('insights.metrics'),
             'reports' => cp_route('insights.reports'),
         ];

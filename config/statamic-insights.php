@@ -67,4 +67,21 @@ return [
         'verify' => (bool) env('STATAMIC_INSIGHTS_WEBSITE_VERIFY', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Search Console
+    |--------------------------------------------------------------------------
+    |
+    | Where the Search Console snapshot lies: one JSON file, format version 1
+    | (see the README). The addon only reads it. It never calls Google and holds
+    | no Google credentials; a script outside this installation writes the file.
+    |
+    | Without the file the "Search Console" entry does not appear anywhere.
+    |
+    */
+
+    'search_console' => [
+        'snapshot' => env('STATAMIC_INSIGHTS_SEARCH_CONSOLE_SNAPSHOT', storage_path('app/insights/search-console.json')),
+    ],
+
 ];
