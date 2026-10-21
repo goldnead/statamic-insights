@@ -30,6 +30,12 @@ class SearchConsoleView
     /** The four figures every window carries, in the order the tiles show them. */
     public const FIGURES = ['clicks', 'impressions', 'ctr', 'position'];
 
+    /** The file keeps the top 25; a longer list is not ours to draw. */
+    public const MAX_ROWS = 25;
+
+    /** More than this many daily points is more than any chart can show. */
+    public const MAX_DAYS = 400;
+
     /**
      * @param  array<string, mixed>  $data  A snapshot that passed {@see SnapshotReader}.
      * @return array<string, mixed>
@@ -95,7 +101,7 @@ class SearchConsoleView
             // The change is worked out from the raw values and only the
             // printed numbers are rounded, so a rate of 2.504 % against 2.496 %
             // is not reported as "no change" because both print as 2.5.
-            $raw = fn (array $row) => is_numeric($row[$figure] ?? null) ? (float) $row[$figure] : null;
+            $raw = fn (array $row) => self::finite($row[$figure] ?? null);
 
             $tiles[] = [
                 'figure' => $figure,
@@ -119,15 +125,27 @@ class SearchConsoleView
      */
     protected static function figure(string $figure, mixed $value): int|float|null
     {
-        if (! is_numeric($value)) {
+        $value = self::finite($value);
+
+        if ($value === null) {
             return null;
         }
 
         return match ($figure) {
-            'ctr' => round((float) $value * 100, 2),
-            'position' => round((float) $value, 1),
-            default => (int) round((float) $value),
+            'ctr' => round($value * 100, 2),
+            'position' => round($value, 1),
+            default => (int) round($value),
         };
+    }
+
+    /** A number that can be printed: INF and NAN (1e999 in JSON) are not. */
+    protected static function finite(mixed $value): ?float
+    {
+        if (! is_numeric($value) || ! is_finite((float) $value)) {
+            return null;
+        }
+
+        return (float) $value;
     }
 
     /**
@@ -140,16 +158,28 @@ class SearchConsoleView
     protected static function daily(array $daily): array
     {
         $series = ['clicks' => [], 'impressions' => []];
+        $days = [];
 
         foreach ($daily as $row) {
-            if (! is_array($row) || ! is_string($row['date'] ?? null)) {
+            // A date that is not YYYY-MM-DD is not a day; the page splits it into numbers.
+            if (! is_array($row) || ! is_string($row['date'] ?? null) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $row['date'])) {
                 continue;
             }
 
+            $days[$row['date']] = $row;
+        }
+
+        // In order, and no more than the screen could use: the newest days.
+        ksort($days);
+        $days = array_slice($days, -self::MAX_DAYS, null, true);
+
+        foreach ($days as $date => $row) {
             foreach (array_keys($series) as $figure) {
+                $value = self::finite($row[$figure] ?? null);
+
                 $series[$figure][] = [
-                    'bucket' => $row['date'],
-                    'value' => is_numeric($row[$figure] ?? null) ? (int) $row[$figure] : null,
+                    'bucket' => (string) $date,
+                    'value' => $value === null ? null : (int) round($value),
                 ];
             }
         }
@@ -173,10 +203,11 @@ class SearchConsoleView
             return [];
         }
 
-        $now = is_array($lists['28d'] ?? null) ? $lists['28d'] : [];
+        $now = is_array($lists['28d'] ?? null) ? array_slice(array_values($lists['28d']), 0, self::MAX_ROWS) : [];
         $then = [];
+        $earlier = is_array($lists['previous_28d'] ?? null) ? array_slice(array_values($lists['previous_28d']), 0, self::MAX_ROWS) : [];
 
-        foreach (is_array($lists['previous_28d'] ?? null) ? $lists['previous_28d'] : [] as $row) {
+        foreach ($earlier as $row) {
             if (is_array($row) && is_string($row[$key] ?? null)) {
                 $then[$row[$key]] = $row;
             }

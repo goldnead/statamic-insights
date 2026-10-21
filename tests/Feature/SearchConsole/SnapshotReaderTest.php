@@ -5,6 +5,7 @@ namespace Goldnead\StatamicInsights\Tests\Feature\SearchConsole;
 use Goldnead\StatamicInsights\SearchConsole\SnapshotReader;
 use Goldnead\StatamicInsights\Tests\Support\SearchConsoleSnapshot;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 
@@ -77,6 +78,11 @@ class SnapshotReaderTest extends SearchConsoleTestCase
             'no periods' => [$without('periods')],
             'one period missing' => [$without('periods', 'previous_28d')],
             'period without clicks' => [$without('periods', '7d', 'clicks')],
+            'fetched_at with a space instead of the T' => [json_encode(['fetched_at' => '2026-10-21 12:00:00'] + $good)],
+            'fetched_at in words' => [json_encode(['fetched_at' => 'next friday'] + $good)],
+            'fetched_at without a zone' => [json_encode(['fetched_at' => '2026-10-21T12:00:00'] + $good)],
+            'infinite clicks (1e999)' => [str_replace('"clicks":42', '"clicks":1e999', (string) json_encode($good))],
+            'infinite impressions (-1e999)' => [str_replace('"impressions":1800', '"impressions":-1e999', (string) json_encode($good))],
         ];
     }
 
@@ -148,5 +154,61 @@ class SnapshotReaderTest extends SearchConsoleTestCase
         unlink($this->file);
 
         $this->assertSame('missing', $reader->read()['status']);
+    }
+
+    #[Test]
+    public function strict_iso_8601_timestamps_are_accepted(): void
+    {
+        foreach (['2026-10-21T12:00:00Z', '2026-10-21T12:00:00+02:00', '2026-10-21T12:00+0200', '2026-10-21T12:00:00.123Z'] as $stamp) {
+            file_put_contents($this->file, json_encode(['fetched_at' => $stamp] + SearchConsoleSnapshot::make(Carbon::now())));
+
+            $this->assertSame('ok', $this->reader()->read()['status'], $stamp);
+        }
+    }
+
+    #[Test]
+    public function only_the_last_file_state_is_kept_in_memory(): void
+    {
+        $reader = $this->reader();
+
+        foreach ([1_700_000_000, 1_700_000_100, 1_700_000_200] as $time) {
+            SearchConsoleSnapshot::write($this->file, SearchConsoleSnapshot::make(Carbon::now()));
+            touch($this->file, $time);
+            $reader->read();
+        }
+
+        $memo = (new \ReflectionProperty($reader, 'memo'))->getValue($reader);
+
+        $this->assertCount(1, $memo);
+    }
+
+    #[Test]
+    public function an_unreadable_file_is_logged_once_with_reason_and_path(): void
+    {
+        Log::spy();
+
+        file_put_contents($this->file, '{"version":1,');
+
+        $reader = $this->reader();
+        $reader->read();
+        $reader->read();
+        $this->reader()->read(); // another request, same file state
+
+        Log::shouldHaveReceived('warning')
+            ->once()
+            ->withArgs(fn (string $message, array $context) => str_contains($message, 'not readable')
+                && $context['path'] === $this->file
+                && $context['reason'] !== '');
+    }
+
+    #[Test]
+    public function a_readable_file_logs_nothing(): void
+    {
+        Log::spy();
+
+        SearchConsoleSnapshot::write($this->file, SearchConsoleSnapshot::make(Carbon::now()));
+        $this->reader()->read();
+
+        Log::shouldNotHaveReceived('warning');
     }
 }

@@ -197,4 +197,60 @@ class SearchConsoleViewTest extends SearchConsoleTestCase
     {
         $this->assertFalse($this->assemble(fetched: Carbon::now()->addHour())['stale']);
     }
+
+    #[Test]
+    public function a_figure_that_is_not_finite_never_reaches_the_props(): void
+    {
+        $data = SearchConsoleSnapshot::make(Carbon::now()->subHours(7));
+        $data['periods']['7d']['ctr'] = INF;
+        $data['periods']['7d']['position'] = NAN;
+        $data['daily'][0]['clicks'] = INF;
+        $data['top_queries']['28d'][0]['impressions'] = INF;
+
+        $view = SearchConsoleView::assemble($data, Carbon::now());
+
+        $this->assertNull($this->tile($view, '7d', 'ctr')['value']);
+        $this->assertNull($this->tile($view, '7d', 'ctr')['delta']);
+        $this->assertNull($this->tile($view, '7d', 'position')['value']);
+        $this->assertNull($view['daily']['clicks'][0]['value']);
+        $this->assertNull($view['queries'][0]['impressions']);
+        $this->assertTrue(json_encode($view) !== false, 'the props must be encodable');
+    }
+
+    #[Test]
+    public function the_daily_series_is_sorted_filtered_and_capped(): void
+    {
+        $daily = [];
+
+        for ($i = 0; $i < 450; $i++) {
+            $daily[] = ['date' => Carbon::parse('2025-01-01')->addDays($i)->toDateString(), 'clicks' => $i, 'impressions' => $i];
+        }
+
+        $daily[] = ['date' => 'gestern', 'clicks' => 1, 'impressions' => 1];
+        $daily[] = ['date' => '2026-10-21T10:00:00', 'clicks' => 1, 'impressions' => 1];
+        shuffle($daily);
+
+        $view = $this->assemble(['daily' => $daily]);
+        $buckets = array_column($view['daily']['clicks'], 'bucket');
+
+        $this->assertCount(400, $buckets);
+        $this->assertSame($buckets, collect($buckets)->sort()->values()->all());
+        $this->assertSame(Carbon::parse('2025-01-01')->addDays(449)->toDateString(), end($buckets));
+        $this->assertNotContains('gestern', $buckets);
+    }
+
+    #[Test]
+    public function the_top_lists_stop_at_twenty_five_rows(): void
+    {
+        $rows = [];
+
+        for ($i = 0; $i < 60; $i++) {
+            $rows[] = ['query' => "q{$i}", 'clicks' => 60 - $i, 'impressions' => 100, 'ctr' => 0.1, 'position' => 3.0];
+        }
+
+        $view = $this->assemble(['top_queries' => ['28d' => $rows, 'previous_28d' => $rows]]);
+
+        $this->assertCount(25, $view['queries']);
+        $this->assertSame('q24', $view['queries'][24]['query']);
+    }
 }

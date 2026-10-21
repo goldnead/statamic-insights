@@ -36,7 +36,7 @@ const figureLabels = computed(() => ({
 
 // "+692,3 %" in the reader's language, not "+692.3%".
 function deltaText(delta) {
-    return `${delta > 0 ? '+' : delta < 0 ? '−' : ''}${formatValue(Math.abs(delta), 'percent')}`;
+    return `${delta > 0 ? '+' : delta < 0 ? '-' : ''}${formatValue(Math.abs(delta), 'percent')}`;
 }
 
 // Green only where the change is an improvement, red only where it is a
@@ -54,7 +54,8 @@ function windowTitle(name) {
 }
 
 function chartPeak(series) {
-    return Math.max(...series.map((b) => Number(b.value) || 0), 0);
+    // reduce, not Math.max(...spread): a long series must not blow the argument limit.
+    return (series || []).reduce((peak, b) => Math.max(peak, Number(b.value) || 0), 0);
 }
 
 function hasChart(series) {
@@ -81,12 +82,15 @@ function columnsFor(key, label) {
 const queryColumns = computed(() => columnsFor('query', __('Query')));
 const pageColumns = computed(() => columnsFor('page', __('Page')));
 
+// An empty figure is said in words ("k. A."), not with a dash.
+function show(value, unit) {
+    if (value === null || value === undefined) return __('n/a');
+
+    return formatValue(value, unit);
+}
+
 function cell(row, field) {
-    const value = row[field];
-
-    if (value === null || value === undefined) return '—';
-
-    return formatValue(value, field === 'ctr' ? 'percent' : 'count');
+    return show(row[field], field === 'ctr' ? 'percent' : 'count');
 }
 
 const tables = computed(() => [
@@ -147,7 +151,7 @@ const tables = computed(() => [
                     <Card v-for="tile in win.tiles" :key="tile.figure" class="h-full">
                         <Subheading :text="figureLabels[tile.figure]" />
                         <div class="mt-2 flex items-baseline gap-2">
-                            <Heading size="2xl" :text="formatValue(tile.value, tile.unit)" />
+                            <Heading size="2xl" :text="show(tile.value, tile.unit)" />
                             <Text
                                 v-if="tile.delta !== null && tile.delta !== undefined"
                                 size="sm"
@@ -155,7 +159,7 @@ const tables = computed(() => [
                             >{{ deltaText(tile.delta) }}</Text>
                         </div>
                         <Text v-if="tile.delta !== null && tile.delta !== undefined" size="xs" variant="subtle" class="block">
-                            {{ __('Before: :value', { value: formatValue(tile.previous, tile.unit) }) }}
+                            {{ __('Before: :value', { value: show(tile.previous, tile.unit) }) }}
                         </Text>
                         <Text v-else size="xs" variant="subtle" class="block">{{ __('Nothing to compare against') }}</Text>
                         <Text v-if="tile.figure === 'position'" size="xs" variant="subtle" class="mt-2 block">
