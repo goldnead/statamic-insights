@@ -3,6 +3,7 @@
 namespace Goldnead\StatamicInsights\Tests\Feature;
 
 use Goldnead\StatamicInsights\Facades\Insights;
+use Goldnead\StatamicInsights\Support\MetricQuery;
 use Goldnead\StatamicInsights\Support\Unit;
 use Goldnead\StatamicInsights\Tests\Fakes\FakeRevenueMetric;
 use Goldnead\StatamicInsights\Tests\Fakes\MinimalRevenueMetric;
@@ -152,6 +153,35 @@ class RevenueRouteTest extends TestCase
                 // than showing three dashes.
                 ->has('tiles', 1)
             );
+    }
+
+    /**
+     * A failing gross metric is an outage, not "nothing sold".
+     *
+     * `MetricReader::read()` answers null when the metric throws. The screen
+     * used to turn that into a gross of 0 and the empty state "no paid order
+     * yet", so a database error or a half-migrated payments addon read as zero
+     * revenue. It answers 503 instead.
+     */
+    #[Test]
+    public function a_gross_metric_that_throws_is_an_outage_and_not_zero_revenue(): void
+    {
+        Insights::registerMetric(new class extends FakeRevenueMetric
+        {
+            public function __construct()
+            {
+                parent::__construct('payments.revenue_gross', 'Einnahmen', Unit::CURRENCY);
+            }
+
+            public function value(MetricQuery $query): int|float|null
+            {
+                throw new \RuntimeException('Tabelle payments fehlt');
+            }
+        });
+
+        $this->actingAs($this->benutzer())
+            ->get(cp_route('insights.revenue'))
+            ->assertStatus(503);
     }
 
     /**

@@ -68,6 +68,9 @@ class RevenueView
 
         return [
             'installed' => true,
+            // The gross metric exists but threw: an outage, not "nothing sold".
+            // Without this the `?? 0` below reads as zero revenue.
+            'failed' => $gelesen['gross'] === null,
             'currency' => $meta['currency'] ?? null,
             'tiles' => $this->tiles($gelesen),
             'refunded' => $gelesen['refunded']['value'] ?? 0,

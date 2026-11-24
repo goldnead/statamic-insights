@@ -42,6 +42,11 @@ class RevenueController extends Controller
 
         $zusammengestellt = $this->view->assemble($query);
 
+        // A gross metric that throws is an outage. Rendering it would show
+        // revenue 0 and the empty state "no paid order yet" over a database
+        // error or a half-migrated payments addon.
+        abort_if(($zusammengestellt['failed'] ?? false) === true, 503, __('The revenue figures could not be read right now. See the log.'));
+
         return Inertia::render('insights::Revenue', array_merge([
             // From the value, not from the currency list: `HasFilterOptions` is
             // optional by contract, and a metric implementing only the required
