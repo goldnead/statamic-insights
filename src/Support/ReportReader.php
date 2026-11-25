@@ -63,6 +63,8 @@ class ReportReader
         } catch (Throwable $e) {
             Log::warning("insights: the report [{$report->handle()}] failed while saying how it wants to be sorted.", [
                 'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
+                'report' => $report->handle(),
             ]);
 
             return null;

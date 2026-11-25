@@ -8,6 +8,7 @@ use Goldnead\StatamicInsights\Support\MetricRegistry;
 use Goldnead\StatamicInsights\Support\Period;
 use Goldnead\StatamicInsights\Support\RevenueView;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 /**
@@ -83,7 +84,13 @@ class RevenueController extends Controller
 
         try {
             $optionen = $metrik->filterOptions()['currency'] ?? [];
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::warning('insights: the revenue metric failed while listing its currencies; the screen shows no currency switch.', [
+                'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
+                'metric' => $metrik->handle(),
+            ]);
+
             return [];
         }
 
@@ -108,8 +115,8 @@ class RevenueController extends Controller
             return $gewuenscht;
         }
 
-        $konfiguriert = config('statamic-insights.currency')
-            ?: config('statamic-payments.currency', 'EUR');
+        $konfiguriert = strtoupper((string) (config('statamic-insights.currency')
+            ?: config('statamic-payments.currency', 'EUR')));
 
         if (in_array($konfiguriert, $currencies, true)) {
             return $konfiguriert;

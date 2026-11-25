@@ -253,6 +253,8 @@ class MetricReader
     {
         Log::warning("insights: the metric [{$metric->handle()}] failed at [{$was}] and was left out.", [
             'exception' => $e->getMessage(),
+            'exception_class' => $e::class,
+            'metric' => $metric->handle(),
         ]);
     }
 }
