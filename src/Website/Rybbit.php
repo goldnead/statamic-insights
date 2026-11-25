@@ -190,18 +190,23 @@ class Rybbit
         // A failure is kept for a minute on this instance, not in the cache: the
         // cache still never keeps a failure (below), but without this every one
         // of the figures on a screen waits out the full timeout in turn.
-        if ($this->ausgefallenBei !== null && time() - $this->ausgefallenBei < self::AUSFALL_HALTEZEIT) {
+        $ttl = (int) config('statamic-insights.website.cache', 300);
+        $cacheKey = 'insights.website.'.md5($key);
+
+        // Only a real network call waits: an answer the cache already holds is
+        // still good, whatever the service did a moment ago.
+        if ($this->ausgefallenBei !== null
+            && time() - $this->ausgefallenBei < self::AUSFALL_HALTEZEIT
+            && ($ttl <= 0 || ! Cache::has($cacheKey))) {
             throw new RuntimeException('insights: the analytics service failed less than a minute ago and is not asked again yet.');
         }
-
-        $ttl = (int) config('statamic-insights.website.cache', 300);
 
         try {
             // `remember` and not `put`: a request that throws never reaches the
             // store, so a service that is down for a minute does not become a
             // screen that is empty for the whole cache lifetime.
             $answer = $ttl > 0
-                ? Cache::remember('insights.website.'.md5($key), $ttl, fn () => $this->fetch($url, $params))
+                ? Cache::remember($cacheKey, $ttl, fn () => $this->fetch($url, $params))
                 : $this->fetch($url, $params);
         } catch (Throwable $e) {
             $this->ausgefallenBei = time();
