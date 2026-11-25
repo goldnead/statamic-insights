@@ -2,6 +2,19 @@
 
 All notable changes to this addon are documented here.
 
+## 1.7.1 — 2026-11-25
+
+### Fixed
+
+- Revenue page: when the gross revenue metric (`payments.revenue_gross`) throws, the page answers `503` with a notice instead of showing gross, net and refunds as 0 and the "no paid order yet" empty state. A missing metric (payments not installed) and a store with no sales behave as before.
+- Revenue page: a configured currency is normalised with `strtoupper`.
+- Failures are no longer silent: `RevenueController::currencies()`, `MetricReader`, `ReportReader` and `AgreementReader` log the exception class and the metric or report handle (an unreadable agreement date is logged, the result stays `null`).
+- Rybbit: after a failed request the client does not call Rybbit again for 60 seconds within the same request cycle and logs the failure once. Failures are still not cached.
+
+### Upgrading
+
+- No migration, no new config key. The Control Panel bundle is unchanged.
+
 ## 1.7.0 — 2026-10-21
 
 ### Added
