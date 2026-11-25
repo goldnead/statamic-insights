@@ -8,7 +8,9 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 /**
  * What the analytics service knows about the site in front of it.
@@ -50,6 +52,14 @@ class Rybbit
 
     /** Answers already fetched in this request, keyed by the URL that produced them. */
     private array $memo = [];
+
+    /**
+     * When the last request failed. Within this many seconds no further request
+     * is sent: a service that is down costs one timeout, not one per figure.
+     */
+    private const AUSFALL_HALTEZEIT = 60;
+
+    private ?int $ausgefallenBei = null;
 
     public static function configured(): bool
     {
@@ -177,14 +187,33 @@ class Rybbit
             return $this->memo[$key];
         }
 
+        // A failure is kept for a minute on this instance, not in the cache: the
+        // cache still never keeps a failure (below), but without this every one
+        // of the figures on a screen waits out the full timeout in turn.
+        if ($this->ausgefallenBei !== null && time() - $this->ausgefallenBei < self::AUSFALL_HALTEZEIT) {
+            throw new RuntimeException('insights: the analytics service failed less than a minute ago and is not asked again yet.');
+        }
+
         $ttl = (int) config('statamic-insights.website.cache', 300);
 
-        // `remember` and not `put`: a request that throws never reaches the
-        // store, so a service that is down for a minute does not become a
-        // screen that is empty for the whole cache lifetime.
-        $answer = $ttl > 0
-            ? Cache::remember('insights.website.'.md5($key), $ttl, fn () => $this->fetch($url, $params))
-            : $this->fetch($url, $params);
+        try {
+            // `remember` and not `put`: a request that throws never reaches the
+            // store, so a service that is down for a minute does not become a
+            // screen that is empty for the whole cache lifetime.
+            $answer = $ttl > 0
+                ? Cache::remember('insights.website.'.md5($key), $ttl, fn () => $this->fetch($url, $params))
+                : $this->fetch($url, $params);
+        } catch (Throwable $e) {
+            $this->ausgefallenBei = time();
+
+            Log::warning('insights: the analytics service failed and is not asked again for a minute.', [
+                'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
+                'path' => $path,
+            ]);
+
+            throw $e;
+        }
 
         return $this->memo[$key] = $answer;
     }

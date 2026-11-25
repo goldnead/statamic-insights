@@ -6,6 +6,7 @@ use Goldnead\StatamicInsights\Support\Concerns\NarrowsToBrand;
 use Goldnead\StatamicInsights\Support\Neighbours;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -250,7 +251,12 @@ class AgreementReader
 
         try {
             return Carbon::parse((string) $value);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::warning('insights: a stored timestamp could not be read and counts as absent.', [
+                'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
+            ]);
+
             return null;
         }
     }
